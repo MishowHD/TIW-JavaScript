@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="">
+<head>
+    <title>Home page</title>
+    <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div class="container">
+    <h1>Playlist Manager</h1>
+
+    <!-- Login -->
+    <div class="auth-section">
+        <h2>Login</h2>
+        <div class="form-container">
+            <form action="CheckPassword" method="post">
+                <div>
+                    <label>
+                        <input
+                                name="username"
+                                type="text"
+                                required
+                                placeholder="Username"
+                        />
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input
+                                name="password"
+                                type="password"
+                                required
+                                placeholder="Password"
+                        />
+                    </label>
+                </div>
+                <button type="submit">Sign in</button>
+            </form>
+            <p class="error-message" th:text="${errorMessage}"></p>
+        </div>
+    </div>
+
+    <!-- Register -->
+    <div class="auth-section">
+        <h2>Register</h2>
+        <div class="form-container">
+            <form action="CheckRegistration" method="post">
+                <div>
+                    <label>
+                        <input
+                                name="newUsername"
+                                type="text"
+                                required
+                                placeholder="Username"
+                        />
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input
+                                name="newName"
+                                type="text"
+                                required
+                                placeholder="Name"
+                        />
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input
+                                name="newSurname"
+                                type="text"
+                                required
+                                placeholder="Surname"
+                        />
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input
+                                name="newPassword"
+                                type="password"
+                                required
+                                placeholder="Password"
+                        />
+                    </label>
+                </div>
+                <div>
+                    <label>
+                        <input
+                                name="newRepeatedPassword"
+                                type="password"
+                                required
+                                placeholder="Repeat Password"
+                        />
+                    </label>
+                </div>
+                <button type="submit">Sign up</button>
+            </form>
+            <p class="error-message" th:text="${usernameInvalid}"></p>
+            <p class="error-message" th:text="${nicknameTaken}"></p>
+            <p class="error-message" th:text="${passwordInvalid}"></p>
+            <p class="error-message" th:text="${passwordMismatch}"></p>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>

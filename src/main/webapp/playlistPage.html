@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="">
+<head>
+    <title>Playlist Page</title>
+    <link rel="stylesheet" th:href="@{/style.css}" />
+</head>
+<body>
+<div class="container">
+    <h1 th:text="${playlist.title}">Playlist Title</h1>
+    <div class="playlist-navigation">
+        <div class="nav-button prev-button">
+            <a th:if="${currentBlock > 0}"
+               th:href="@{/GoToPlaylist(playlist_id=${playlist.playlist_id}, page=${currentBlock - 1})}"
+               class="nav-link">Previous</a>
+        </div>
+        <div class="tracks-container">
+            <table class="tracks-table">
+                <tr>
+                    <td th:each="track : ${currentTracks}" class="track-cell">
+                        <a th:href="@{/GoToPlayer(track_id=${track.trackId})}"
+                           class="track-link">
+                            <div class="track-title" th:text="${track.title}">Track Title</div>
+                            <img th:if="${track.album.image != null}"
+                                 th:src="@{/uploads/{p}(p=${track.album.image})}"
+                                 class="track-image"
+                                 alt="Album cover">
+                        </a>
+                    </td>
+                </tr>
+            </table>
+        </div>
+        <div class="nav-button next-button">
+            <a th:if="${hasNextBlock}"
+               th:href="@{/GoToPlaylist(playlist_id=${playlist.playlist_id}, page=${currentBlock + 1})}"
+               class="nav-link">Next</a>
+        </div>
+    </div>
+
+    <div class="add-tracks-section">
+        <div class="add-tracks-header">
+            <h2>Add tracks to your playlist</h2>
+        </div>
+        <div class="add-tracks-form">
+            <form th:action="@{/AddTracksToPlaylist}" method="post">
+                <input type="hidden" name="playlist_id" th:value="${playlist.playlist_id}">
+                <div>
+                    <label class="form-label">Select tracks:</label>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item" th:each="track : ${availableTracks}">
+                            <label>
+                                <input type="checkbox"
+                                       th:id="${'avail_track_' + track.trackId}"
+                                       name="trackIds"
+                                       th:value="${track.trackId}"/>
+                            </label>
+                            <label th:for="${'avail_track_' + track.trackId}"
+                                   th:text="${track.title + ' (' + track.album.performer + ' - ' + track.album.publicationYear + ')'}">
+                                Track Title (Author - Year)
+                            </label>
+                        </div>
+                        <div th:if="${#lists.isEmpty(availableTracks)}" class="no-tracks-message">
+                            No track available to add
+                        </div>
+                    </div>
+                </div>
+                    <button type="submit" th:disabled="${#lists.isEmpty(availableTracks)}">Add selected tracks</button>
+            </form>
+        </div>
+    </div>
+    <p class="back-link">
+        <a th:href="@{/GoToHome}">Back to Home Page</a>
+    </p>
+</div>
+</body>
+</html>

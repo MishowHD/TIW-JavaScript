@@ -1,0 +1,91 @@
+<ifml:InteractionFlowModel xmlns:ifml="http://www.omg.org/spec/IFML/1.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://www.omg.org/spec/IFML/1.0 http://www.omg.org/spec/IFML/1.0/IFML.xsd"
+    id="PlaylistAppModel">
+  <ifml:ViewContainer id="App">
+    <ifml:ViewContainer id="LoginPage">
+      <ifml:ViewComponent id="LoginForm" type="Form">
+        <ifml:Field id="username"/>
+        <ifml:Field id="password"/>
+        <ifml:Event id="onSubmit" action="loginAction"/>
+      </ifml:ViewComponent>
+    </ifml:ViewContainer>
+    <ifml:ViewContainer id="HomePage" onEntry="loadUserData">
+      <ifml:ViewComponent id="PlaylistList" type="DataView">
+        <ifml:DataBinding entity="Playlist" filter="createdBy = currentUser" sort="-dataCreazione"/>
+        <ifml:Event id="onSelectPlaylist" action="openPlaylistAction"/>
+      </ifml:ViewComponent>
+      <ifml:ViewComponent id="UploadTrackForm" type="Form">
+        <ifml:Field id="titolo"/>
+        <ifml:Field id="albumTitolo"/>
+        <ifml:Field id="albumImage"/>
+        <ifml:Field id="interprete"/>
+        <ifml:Field id="annoPubblicazione"/>
+        <ifml:Field id="genre" type="Select" options="Genre.all"/>
+        <ifml:Field id="fileMusic"/>
+        <ifml:Event id="onSubmit" action="uploadTrackAction"/>
+      </ifml:ViewComponent>
+      <ifml:ViewComponent id="CreatePlaylistForm" type="Form">
+        <ifml:Field id="titoloPlaylist"/>
+        <ifml:ViewComponent id="TrackSelector" type="DataView" DataBinding="Track.filter(uploadedBy=currentUser).sort(interprete ASC, album.annoPubblicazione ASC)">
+          <ifml:Event id="onSelectMultiple" action="selectTracksForPlaylist"/>
+        </ifml:ViewComponent>
+        <ifml:Event id="onSubmit" action="createPlaylistAction"/>
+      </ifml:ViewComponent>
+    </ifml:ViewContainer>
+    <ifml:ViewContainer id="PlaylistPage">
+      <ifml:ViewComponent id="PlaylistTrackGrid" type="DataView" pageSize="5" currentPage="viewParam.page">
+        <ifml:DataBinding entity="Track" filter="inPlaylist(currentPlaylist)" sort="interprete ASC, album.annoPubblicazione ASC"/>
+        <ifml:Event id="onNextPage" action="goToNextPage"/>
+        <ifml:Event id="onPrevPage" action="goToPrevPage"/>
+        <ifml:Event id="onSelectTrack" action="openPlayerAction"/>
+      </ifml:ViewComponent>
+      <ifml:ViewComponent id="AddTrackToPlaylistForm" type="Form">
+        <ifml:ViewComponent id="AvailableTrackSelector" type="DataView" DataBinding="Track.filter(uploadedBy=currentUser AND NOT inPlaylist(currentPlaylist)).sort(interprete ASC, album.annoPubblicazione ASC)"/>
+        <ifml:Event id="onSubmit" action="addTracksToPlaylistAction"/>
+      </ifml:ViewComponent>
+    </ifml:ViewContainer>
+    <ifml:ViewContainer id="PlayerPage">
+      <ifml:ViewComponent id="TrackDetail" type="DetailView">
+        <ifml:DataBinding entity="Track" id="viewParam.trackId"/>
+      </ifml:ViewComponent>
+      <ifml:ViewComponent id="AudioPlayer" type="Media">
+        <ifml:DataBinding property="file"/>
+      </ifml:ViewComponent>
+    </ifml:ViewContainer>
+  </ifml:ViewContainer>
+  <ifml:Action id="loginAction">
+    <ifml:Input view="LoginForm"/>
+    <ifml:Output to="HomePage"/>
+  </ifml:Action>
+  <ifml:Action id="uploadTrackAction">
+    <ifml:Input view="UploadTrackForm"/>
+    <ifml:Reload view="HomePage"/>
+  </ifml:Action>
+  <ifml:Action id="createPlaylistAction">
+    <ifml:Input view="CreatePlaylistForm"/>
+    <ifml:Reload view="HomePage"/>
+  </ifml:Action>
+  <ifml:Action id="openPlaylistAction">
+    <ifml:Parameter from="PlaylistList.selectedId" into="viewParam.playlistId"/>
+    <ifml:Output to="PlaylistPage"/>
+  </ifml:Action>
+  <ifml:Action id="goToNextPage">
+    <ifml:Compute expression="viewParam.page = viewParam.page + 1"/>
+    <ifml:Reload view="PlaylistPage"/>
+  </ifml:Action>
+  <ifml:Action id="goToPrevPage">
+    <ifml:Compute expression="viewParam.page = viewParam.page - 1"/>
+    <ifml:Reload view="PlaylistPage"/>
+  </ifml:Action>
+  <ifml:Action id="addTracksToPlaylistAction">
+    <ifml:Input view="AddTrackToPlaylistForm"/>
+    <ifml:Compute expression="addTracksToCurrentPlaylist"/>
+    <ifml:Compute expression="viewParam.page = 1"/>
+    <ifml:Reload view="PlaylistPage"/>
+  </ifml:Action>
+  <ifml:Action id="openPlayerAction">
+    <ifml:Parameter from="PlaylistTrackGrid.selectedId or TrackSelector.selectedId" into="viewParam.trackId"/>
+    <ifml:Output to="PlayerPage"/>
+  </ifml:Action>
+</ifml:InteractionFlowModel>

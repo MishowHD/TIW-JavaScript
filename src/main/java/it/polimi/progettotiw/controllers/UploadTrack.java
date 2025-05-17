@@ -1,0 +1,138 @@
+package it.polimi.progettotiw.controllers;
+
+import it.polimi.progettotiw.ConnectionHandler;
+import it.polimi.progettotiw.beans.User;
+import it.polimi.progettotiw.dao.TrackDAO;
+
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.annotation.MultipartConfig;
+import jakarta.servlet.annotation.WebServlet;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Part;
+
+import org.thymeleaf.TemplateEngine;
+import org.thymeleaf.templatemode.TemplateMode;
+import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.UUID;
+
+// Servlet per il salvataggio delle tracce audio
+@WebServlet("/UploadTrack")
+@MultipartConfig(
+        fileSizeThreshold   = 1024 * 1024,
+        maxFileSize         = 10 * 1024 * 1024,
+        maxRequestSize      = 20 * 1024 * 1024
+)
+public class UploadTrack extends HttpServlet {
+    private static final long serialVersionUID = 1L;
+
+    private Connection connection;
+    private String uploadBase;
+
+    @Override
+    public void init() throws ServletException {
+        ServletContext servletContext = getServletContext();
+        JakartaServletWebApplication application = JakartaServletWebApplication.buildApplication(servletContext);
+        WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(application);
+        templateResolver.setTemplateMode(TemplateMode.HTML);
+        templateResolver.setSuffix(".html");
+        TemplateEngine templateEngine = new TemplateEngine();
+        templateEngine.setTemplateResolver(templateResolver);
+        connection = ConnectionHandler.getConnection(servletContext);
+        uploadBase = servletContext.getInitParameter("UPLOAD_BASE");
+        if (uploadBase == null) {
+            throw new ServletException("UPLOAD_BASE non configurato");
+        }
+    }
+
+    @Override
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
+        try {
+        User user = (User) request.getSession().getAttribute("user");
+
+        String albumIdStr = request.getParameter("albumId");
+        String title      = request.getParameter("title");
+        String genreName  = request.getParameter("genreName");
+        Part audioPart    = request.getPart("audioFile");
+
+        if (albumIdStr == null || albumIdStr.isEmpty() ||
+                title == null || title.isEmpty() ||
+                genreName == null || genreName.isEmpty() ||
+                audioPart == null || audioPart.getSize() == 0) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parametri mancanti");
+            return;
+        }
+
+        int albumId;
+        try {
+            albumId = Integer.parseInt(albumIdStr);
+        } catch (NumberFormatException e) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Album ID non valido");
+            return;
+        }
+
+        Path basePath = Paths.get(uploadBase).toAbsolutePath().normalize();
+        Path userAudioDir = basePath.resolve(user.getUsername()).resolve("audio").normalize();
+        if (!userAudioDir.startsWith(basePath)) {
+            throw new IOException("Tentativo di path traversal");
+        }
+        Files.createDirectories(userAudioDir);
+
+        String originalName = audioPart.getSubmittedFileName();
+        String ext = originalName != null && originalName.contains(".")
+                ? originalName.substring(originalName.lastIndexOf('.'))
+                : "";
+        String storedName = UUID.randomUUID() + ext;
+        Path dest = userAudioDir.resolve(storedName);
+
+        try {
+            Files.copy(audioPart.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException e) {
+            log("Errore salvataggio file audio", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Errore salvataggio file audio");
+            return;
+        }
+
+        String relativePath = user.getUsername() + "/audio/" + storedName;
+        try {
+            new TrackDAO(connection).create(
+                    title, relativePath, albumId, genreName, user.getUsername()
+            );
+        } catch (SQLException e) {
+            log("Errore DB salvataggio traccia", e);
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Errore salvataggio traccia");
+            return;
+        }
+
+        response.sendRedirect(request.getContextPath() + "/GoToHome");
+    } catch (IllegalStateException e) {
+            // file troppo grande da Servlet container
+            request.setAttribute("jakarta.servlet.error.exception", e);
+            request.getRequestDispatcher("/ErrorHandler").forward(request, response);
+        } catch (Exception e) {
+            // altri errori generici
+            e.printStackTrace();
+            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
+                    "Error in file upload");
+        }
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            ConnectionHandler.closeConnection(connection);
+        } catch (SQLException ignore) {}
+    }
+}

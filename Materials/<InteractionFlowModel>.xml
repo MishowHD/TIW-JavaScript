@@ -1,0 +1,127 @@
+<InteractionFlowModel>
+
+  <!-- VIEW CONTAINER principale -->
+  <ViewContainer id="App">
+    
+    <!-- 1. Login Page -->
+    <ViewContainer id="LoginPage">
+      <ViewComponent id="LoginForm" type="Form">
+        <Field id="username"/>
+        <Field id="password"/>
+        <Event id="onSubmit" action="loginAction"/>
+      </ViewComponent>
+    </ViewContainer>
+
+    <!-- 2. Home Page (accessibile dopo login) -->
+    <ViewContainer id="HomePage" onEntry="loadUserData">
+      
+      <!-- Lista playlist ordinate per dataCreazione desc -->
+      <ViewComponent id="PlaylistList" type="DataView">
+        <DataBinding entity="Playlist" filter="createdBy = currentUser" sort="-dataCreazione"/>
+        <Event id="onSelectPlaylist" action="openPlaylistAction"/>
+      </ViewComponent>
+      
+      <!-- Form per caricamento brano -->
+      <ViewComponent id="UploadTrackForm" type="Form">
+        <Field id="titolo"/>
+        <Field id="albumTitolo"/>
+        <Field id="albumImage"/>
+        <Field id="interprete"/>
+        <Field id="annoPubblicazione"/>
+        <Field id="genre" type="Select" options="Genre.all"/>
+        <Field id="fileMusic"/>
+        <Event id="onSubmit" action="uploadTrackAction"/>
+      </ViewComponent>
+
+      <!-- Form per creazione playlist -->
+      <ViewComponent id="CreatePlaylistForm" type="Form">
+        <Field id="titoloPlaylist"/>
+        <ViewComponent id="TrackSelector" type="DataView" 
+                       DataBinding="Track.filter(uploadedBy=currentUser).sort(interprete ASC, album.annoPubblicazione ASC)">
+          <Event id="onSelectMultiple" action="selectTracksForPlaylist"/>
+        </ViewComponent>
+        <Event id="onSubmit" action="createPlaylistAction"/>
+      </ViewComponent>
+
+    </ViewContainer>
+
+    <!-- 3. Playlist Page -->
+    <ViewContainer id="PlaylistPage">
+      
+      <!-- Griglia a 1 riga x 5 colonne con paginazione -->
+      <ViewComponent id="PlaylistTrackGrid" type="DataView">
+        <DataBinding entity="Track" 
+                     filter="inPlaylist(currentPlaylist)" 
+                     sort="interprete ASC, album.annoPubblicazione ASC"
+                     pageSize="5" currentPage="viewParam.page"/>
+        <Event id="onNextPage" action="goToNextPage"/>
+        <Event id="onPrevPage" action="goToPrevPage"/>
+        <Event id="onSelectTrack" action="openPlayerAction"/>
+      </ViewComponent>
+
+      <!-- Form per aggiungere brani -->
+      <ViewComponent id="AddTrackToPlaylistForm" type="Form">
+        <ViewComponent id="AvailableTrackSelector" type="DataView"
+                       DataBinding="Track.filter(uploadedBy=currentUser AND NOT inPlaylist(currentPlaylist))
+                                    .sort(interprete ASC, album.annoPubblicazione ASC)"/>
+        <Event id="onSubmit" action="addTracksToPlaylistAction"/>
+      </ViewComponent>
+
+    </ViewContainer>
+
+    <!-- 4. Player Page -->
+    <ViewContainer id="PlayerPage">
+      <ViewComponent id="TrackDetail" type="DetailView">
+        <DataBinding entity="Track" id="viewParam.trackId"/>
+      </ViewComponent>
+      <ViewComponent id="AudioPlayer" type="Media">
+        <DataBinding property="file"/>
+      </ViewComponent>
+    </ViewContainer>
+
+  </ViewContainer>
+
+  <!-- ACTION FLOWS -->
+  <Action id="loginAction">
+    <Input view="LoginForm"/>
+    <Output to="HomePage"/>
+  </Action>
+
+  <Action id="uploadTrackAction">
+    <Input view="UploadTrackForm"/>
+    <Reload view="HomePage"/>
+  </Action>
+
+  <Action id="createPlaylistAction">
+    <Input view="CreatePlaylistForm"/>
+    <Reload view="HomePage"/>
+  </Action>
+
+  <Action id="openPlaylistAction">
+    <Parameter from="PlaylistList.selectedId" into="viewParam.playlistId"/>
+    <Output to="PlaylistPage"/>
+  </Action>
+
+  <Action id="goToNextPage">
+    <Compute viewParam.page = viewParam.page + 1/>
+    <Reload view="PlaylistPage"/>
+  </Action>
+
+  <Action id="goToPrevPage">
+    <Compute viewParam.page = viewParam.page - 1/>
+    <Reload view="PlaylistPage"/>
+  </Action>
+
+  <Action id="addTracksToPlaylistAction">
+    <Input view="AddTrackToPlaylistForm"/>
+    <Compute add tracks to currentPlaylist/>
+    <Compute viewParam.page = 1/>
+    <Reload view="PlaylistPage"/>
+  </Action>
+
+  <Action id="openPlayerAction">
+    <Parameter from="PlaylistTrackGrid.selectedId or TrackSelector.selectedId" into="viewParam.trackId"/>
+    <Output to="PlayerPage"/>
+  </Action>
+
+</InteractionFlowModel>

@@ -1,0 +1,105 @@
+erDiagram
+    USER {
+        string username PK "Username unico"
+        string password "Password"
+        string first_name "Nome"
+        string last_name "Cognome"
+    }
+    ALBUM {
+        int album_id PK "ID album"
+        string title "Titolo album"
+        string performer "Interprete"
+        int publication_year "Anno pubblicazione"
+        string image "Copertina"
+    }
+    GENRE {
+        string name PK "Genere"
+    }
+    TRACK {
+        int track_id PK "ID brano"
+        string title "Titolo brano"
+        string file_path "Percorso file audio"
+        int album_id FK "Appartiene a ALBUM.album_id"
+        string genre_name FK "Appartiene a GENRE.name"
+        string username FK "Appartiene a USER.username"
+    }
+    PLAYLIST {
+        int playlist_id PK "ID playlist"
+        string title "Titolo playlist"
+        date creation_date "Data creazione"
+        string username FK "Appartiene a USER.username"
+    }
+    PLAYLIST_TRACK {
+        int playlist_id PK "FK -> PLAYLIST.playlist_id"
+        int track_id    PK "FK -> TRACK.track_id"
+    }
+
+    USER ||--o{ TRACK : "carica"
+    USER ||--o{ PLAYLIST : "crea"
+    ALBUM ||--o{ TRACK : "contiene"
+    GENRE ||--o{ TRACK : "classifica"
+    PLAYLIST ||--o{ PLAYLIST_TRACK : "ha"
+    TRACK ||--o{ PLAYLIST_TRACK : "è in"
+
+CREATE TABLE Users (
+    username       VARCHAR(50)    PRIMARY KEY,
+    password       VARCHAR(255)   NOT NULL,
+    first_name     VARCHAR(100)   NOT NULL,
+    last_name      VARCHAR(100)   NOT NULL
+);
+
+CREATE TABLE Genres (
+    name           VARCHAR(50)    PRIMARY KEY
+);
+
+CREATE TABLE Albums(
+    album_id         int auto_increment primary key,
+    title            varchar(200) not null,
+    performer        varchar(200) not null,
+    publication_year int          not null,
+    image            varchar(255) null,
+    username         varchar(50)  null,
+    constraint username
+        foreign key (username) references Users (username)
+);
+
+CREATE TABLE Tracks (
+    track_id        INT AUTO_INCREMENT PRIMARY KEY,
+    title           VARCHAR(200)     NOT NULL,
+    file_path       VARCHAR(255)     NOT NULL,
+    album_id        INT              NOT NULL,
+    genre_name      VARCHAR(50)      NOT NULL,
+    username        VARCHAR(50)      NOT NULL,
+    FOREIGN KEY (album_id)    REFERENCES Albums(album_id),
+    FOREIGN KEY (genre_name)  REFERENCES Genres(name),
+    FOREIGN KEY (username)    REFERENCES Users(username) ON DELETE CASCADE
+);
+
+CREATE TABLE Playlists (
+    playlist_id     INT AUTO_INCREMENT PRIMARY KEY,
+    title           VARCHAR(200)     NOT NULL,
+    creation_date   DATE             NOT NULL DEFAULT (CURDATE()),
+    username        VARCHAR(50)      NOT NULL,
+    FOREIGN KEY (username) REFERENCES Users(username) ON DELETE CASCADE
+);
+
+CREATE TABLE Playlist_Tracks (
+    playlist_id     INT              NOT NULL,
+    track_id        INT              NOT NULL,
+    PRIMARY KEY (playlist_id, track_id),
+    FOREIGN KEY (playlist_id) REFERENCES Playlists(playlist_id) ON DELETE CASCADE,
+    FOREIGN KEY (track_id)    REFERENCES Tracks(track_id) ON DELETE CASCADE
+);}
+
+INSERT INTO ciao.Genres (name) VALUES ('Pop');
+INSERT INTO ciao.Genres (name) VALUES ('Rap');
+INSERT INTO ciao.Genres (name) VALUES ('Classic');
+INSERT INTO ciao.Genres (name) VALUES ('Alternative');
+INSERT INTO ciao.Genres (name) VALUES ('HipHop');
+INSERT INTO ciao.Genres (name) VALUES ('Dance');
+INSERT INTO ciao.Genres (name) VALUES ('Latin');
+INSERT INTO ciao.Genres (name) VALUES ('Rock');
+INSERT INTO ciao.Genres (name) VALUES ('Jazz');
+INSERT INTO ciao.Genres (name) VALUES ('R&B');
+INSERT INTO ciao.Genres (name) VALUES ('Soul');
+INSERT INTO ciao.Genres (name) VALUES ('Other');
