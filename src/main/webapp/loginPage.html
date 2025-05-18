@@ -1,7 +1,9 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="">
+<html lang="">
 <head>
     <title>Home page</title>
+    <script src="./resources/Utils.js" charset="utf-8" defer></script>
+    <script src="./resources/LoginPageManager.js" charset="utf-8" defer></script>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -12,7 +14,7 @@
     <div class="auth-section">
         <h2>Login</h2>
         <div class="form-container">
-            <form action="CheckPassword" method="post">
+            <form action="#" method="post">
                 <div>
                     <label>
                         <input
@@ -33,9 +35,9 @@
                         />
                     </label>
                 </div>
-                <button type="submit">Sign in</button>
+                <button id="LoginButton" type="submit">Sign in</button>
             </form>
-            <p class="error-message" th:text="${errorMessage}"></p>
+            <p id="errorMessageLogin"> </p>
         </div>
     </div>
 
@@ -43,7 +45,7 @@
     <div class="auth-section">
         <h2>Register</h2>
         <div class="form-container">
-            <form action="CheckRegistration" method="post">
+            <form action="#" method="post">
                 <div>
                     <label>
                         <input
@@ -94,13 +96,10 @@
                         />
                     </label>
                 </div>
-                <button type="submit">Sign up</button>
+                <button id="RegistratonButton" type="submit">Sign up</button>
             </form>
-            <p class="error-message" th:text="${usernameInvalid}"></p>
-            <p class="error-message" th:text="${nicknameTaken}"></p>
-            <p class="error-message" th:text="${passwordInvalid}"></p>
-            <p class="error-message" th:text="${passwordMismatch}"></p>
-
+            <p id="errorMessageRegistration"> </p>
+            <p id="OKMessageRegistration"> </p>
         </div>
     </div>
 </div>
