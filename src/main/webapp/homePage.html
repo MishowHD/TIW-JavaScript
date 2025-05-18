@@ -31,18 +31,24 @@
     <h2>Create a New Album</h2>
     <form id="albumForm" action="#" method="post" enctype="multipart/form-data">
         <div>
-            <input name="title" type="text" required placeholder="Album Title">
+            <label>
+                <input name="title" type="text" required placeholder="Album Title">
+            </label>
         </div>
         <div>
-            <input name="performer" type="text" required placeholder="Performer">
+            <label>
+                <input name="performer" type="text" required placeholder="Performer">
+            </label>
         </div>
         <div>
-            <input name="publicationYear"
-                   type="number"
-                   required
-                   placeholder="Publication Year"
-                   min="1000"
-                   max="2025">
+            <label>
+                <input name="publicationYear"
+                       type="number"
+                       required
+                       placeholder="Publication Year"
+                       min="1000"
+                       max="2025">
+            </label>
         </div>
         <div>
             <label>Upload Image here:</label>
@@ -61,7 +67,9 @@
             </select>
         </div>
         <div>
-            <input name="title" type="text" required placeholder="Track Title">
+            <label>
+                <input name="title" type="text" required placeholder="Track Title">
+            </label>
         </div>
         <div>
             <label for="genreSelect">Genre:</label>
@@ -80,10 +88,12 @@
     <h2>Create a New Playlist</h2>
     <form id="playlistForm" action="#" method="post">
         <div>
-            <input name="title"
-                   type="text"
-                   required
-                   placeholder="Playlist Title">
+            <label>
+                <input name="title"
+                       type="text"
+                       required
+                       placeholder="Playlist Title">
+            </label>
         </div>
         <div>
             <label>Select Tracks:</label>

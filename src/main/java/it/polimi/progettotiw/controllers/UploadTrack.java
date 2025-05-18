@@ -13,11 +13,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.Part;
 
-import org.thymeleaf.TemplateEngine;
-import org.thymeleaf.templatemode.TemplateMode;
-import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
-import org.thymeleaf.web.servlet.JakartaServletWebApplication;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -43,12 +38,6 @@ public class UploadTrack extends HttpServlet {
     @Override
     public void init() throws ServletException {
         ServletContext servletContext = getServletContext();
-        JakartaServletWebApplication application = JakartaServletWebApplication.buildApplication(servletContext);
-        WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(application);
-        templateResolver.setTemplateMode(TemplateMode.HTML);
-        templateResolver.setSuffix(".html");
-        TemplateEngine templateEngine = new TemplateEngine();
-        templateEngine.setTemplateResolver(templateResolver);
         connection = ConnectionHandler.getConnection(servletContext);
         uploadBase = servletContext.getInitParameter("UPLOAD_BASE");
         if (uploadBase == null) {
@@ -71,7 +60,8 @@ public class UploadTrack extends HttpServlet {
                 title == null || title.isEmpty() ||
                 genreName == null || genreName.isEmpty() ||
                 audioPart == null || audioPart.getSize() == 0) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Parametri mancanti");
+            response.getWriter().println("Missing Parameters");
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -79,7 +69,8 @@ public class UploadTrack extends HttpServlet {
         try {
             albumId = Integer.parseInt(albumIdStr);
         } catch (NumberFormatException e) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Album ID non valido");
+            response.getWriter().println("Album ID not valid");
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return;
         }
 
@@ -101,7 +92,8 @@ public class UploadTrack extends HttpServlet {
             Files.copy(audioPart.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             log("Errore salvataggio file audio", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Errore salvataggio file audio");
+            response.getWriter().println("Error when copying audio file");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
 
@@ -112,11 +104,14 @@ public class UploadTrack extends HttpServlet {
             );
         } catch (SQLException e) {
             log("Errore DB salvataggio traccia", e);
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Errore salvataggio traccia");
+            response.getWriter().println("Error when copying track");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
         }
 
-        response.sendRedirect(request.getContextPath() + "/GoToHome");
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.setContentType("application/json");
+            response.setCharacterEncoding("UTF-8");
     } catch (IllegalStateException e) {
             // file troppo grande da Servlet container
             request.setAttribute("jakarta.servlet.error.exception", e);
@@ -124,8 +119,8 @@ public class UploadTrack extends HttpServlet {
         } catch (Exception e) {
             // altri errori generici
             e.printStackTrace();
-            response.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR,
-                    "Error in file upload");
+            response.getWriter().println("Error when copying track");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
