@@ -279,6 +279,80 @@ audio {
     color: #ffffff;
     text-decoration: none;
 }
+.add-tracks-form {
+    margin-top: 2em;
+    padding: 1em;
+    border-top: 1px solid #ccc;
+}
+
+.checkbox-group {
+    margin: 1em 0;
+}
+
+.checkbox-item {
+    margin: 0.5em 0;
+    display: flex;
+    align-items: center;
+}
+
+.checkbox-item input {
+    margin-right: 0.5em;
+}
+
+.no-tracks-message {
+    color: #666;
+    font-style: italic;
+}
+
+.add-tracks-form {
+    margin-top: 2em;
+    padding: 1em;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #f8f9fa;
+}
+
+.add-tracks-form h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.checkbox-group {
+    margin: 1em 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.checkbox-item {
+    padding: 0.5em;
+    border-bottom: 1px solid #eee;
+}
+
+.checkbox-item:hover {
+    background: #f0f0f0;
+}
+
+.no-tracks {
+    color: #666;
+    font-style: italic;
+    padding: 1em;
+}
+
+#addTracksBtn {
+    margin-top: 1em;
+    padding: 0.5em 1em;
+    background: #28a745;
+    color: white;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+#addTracksBtn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+}
+
 
 .logout {
     display: inline-block;

@@ -1,3 +1,4 @@
+
 (function(){
     const URL_PLAYLIST_LIST   = "GetUserPlaylistsData";
     const URL_PLAYLIST_DATA   = "GetPlaylistData";
@@ -7,53 +8,75 @@
     const URL_UPLOAD_TRACK    = "UploadTrack";
     const URL_SAVE_PLAYLIST   = "SavePlaylist";
     const URL_GENRE_LIST      = "GetGenresData";
-    const URL_TRACK_DATA    = "GetTrackData";
+    const URL_TRACK_DATA      = "GetTrackData";
 
     function PlaylistDetailView(containerElem, msgElem, playerView) {
-        this.container     = containerElem;
-        this.msg           = msgElem;
-        this.playerView   = playerView;
-        this.tracks        = [];
-        this.currentBlock  = 0;
-        this.blockSize     = 5;
+        this.container = containerElem;
+        this.msg = msgElem;
+        this.playerView = playerView;
+        this.tracks = [];
+        this.currentBlock = 0;
+        this.blockSize = 5;
+        this.currentPlaylistId = null;
 
-        // Inizializza il DOM base
         this.init = () => {
             this.container.innerHTML = `
-        <h2 id="detailTitle"></h2>
-        <div class="playlist-navigation">
-          <div class="nav-button prev-button">
-            <button id="prevBtn">PRECEDENTI</button>
-          </div>
-          <div class="tracks-container">
-            <table id="detailTable">
-              <tr id="detailRow"></tr>
-            </table>
-          </div>
-          <div class="nav-button next-button">
-            <button id="nextBtn">SUCCESSIVI</button>
-          </div>
-        </div>
-    `;
+                <h2 id="detailTitle"></h2>
+                <div class="playlist-navigation">
+                    <div class="nav-button prev-button">
+                        <button id="prevBtn">PRECEDENTI</button>
+                    </div>
+                    <div class="tracks-container">
+                        <table id="detailTable">
+                            <tr id="detailRow"></tr>
+                        </table>
+                    </div>
+                    <div class="nav-button next-button">
+                        <button id="nextBtn">SUCCESSIVI</button>
+                    </div>
+                </div>
+                <div class="add-tracks-form">
+                    <h3>Aggiungi tracce alla playlist</h3>
+                    <form id="addTracksForm">
+                        <div class="checkbox-group" id="availableTracksGroup"></div>
+                        <button type="submit" id="addTracksBtn">Aggiungi tracce selezionate</button>
+                    </form>
+                </div>
+            `;
+
             this.container.querySelector("#prevBtn")
                 .addEventListener("click", () => this.renderBlock(this.currentBlock - 1));
             this.container.querySelector("#nextBtn")
                 .addEventListener("click", () => this.renderBlock(this.currentBlock + 1));
+
+            this.container.querySelector('#addTracksForm')
+                .addEventListener('submit', e => this.handleAddTracks(e));
         };
 
-
-        // Carica dal server tutte le tracce della playlist
         this.load = (playlist_id) => {
+            this.currentPlaylistId = playlist_id;
             this.msg.textContent = "";
+
             makeCall("GET", `${URL_PLAYLIST_DATA}?playlist_id=${playlist_id}`, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
                     const resp = JSON.parse(req.responseText);
-                    this.tracks       = resp.tracks;
+                    this.tracks = resp.tracks;
                     this.currentBlock = 0;
                     this.container.style.display = "block";
                     this.container.querySelector("#detailTitle").textContent = resp.playlist.title;
                     this.renderBlock(0);
+
+                    // Carica tracce disponibili
+                    makeCall("GET", URL_TRACK_LIST, null, req2 => {
+                        if (req2.readyState === XMLHttpRequest.DONE && req2.status === 200) {
+                            const allTracks = JSON.parse(req2.responseText);
+                            const availableTracks = allTracks.filter(t =>
+                                !this.tracks.some(pt => pt.track_id === t.track_id)
+                            );
+                            this.renderAvailableTracks(availableTracks);
+                        }
+                    });
                 }
                 else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
@@ -61,6 +84,92 @@
                 }
                 else {
                     this.msg.textContent = req.responseText;
+                }
+            });
+        };
+
+        this.renderBlock = (blockIndex) => {
+            const totalBlocks = Math.ceil(this.tracks.length / this.blockSize);
+            if (blockIndex < 0 || blockIndex >= totalBlocks) return;
+            this.currentBlock = blockIndex;
+            const slice = this.tracks.slice(blockIndex * this.blockSize, (blockIndex+1)*this.blockSize);
+            const row = this.container.querySelector("#detailRow");
+            row.innerHTML = "";
+
+            slice.forEach(t => {
+                const td = document.createElement("td");
+                td.innerHTML = `
+                    <a href="#" class="track-link" data-track-id="${t.track_id}">
+                        <div class="track-title">${t.title}</div>
+                        ${t.album.image ?
+                    `<img src="uploads/${t.album.image}" alt="cover" class="track-image">` : ''}
+                    </a>
+                `;
+                row.appendChild(td);
+            });
+
+            this.container.querySelectorAll('a.track-link')
+                .forEach(a => a.addEventListener('click', e => {
+                    e.preventDefault();
+                    this.playerView.load(a.dataset.trackId);
+                }));
+
+            const prevContainer = this.container.querySelector(".prev-button");
+            const nextContainer = this.container.querySelector(".next-button");
+
+            if (totalBlocks <= 1) {
+                prevContainer.style.display = "none";
+                nextContainer.style.display = "none";
+            } else {
+                prevContainer.style.display = (blockIndex > 0) ? "block" : "none";
+                nextContainer.style.display = (blockIndex < totalBlocks - 1) ? "block" : "none";
+            }
+        };
+
+        this.renderAvailableTracks = (availableTracks) => {
+            const group = this.container.querySelector('#availableTracksGroup');
+            const button = this.container.querySelector('#addTracksBtn');
+            group.innerHTML = '';
+
+            if (availableTracks.length === 0) {
+                group.innerHTML = '<div class="no-tracks">Nessuna traccia disponibile da aggiungere</div>';
+                button.disabled = true;
+                return;
+            }
+
+            availableTracks.forEach(track => {
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                div.innerHTML = `
+                    <input type="checkbox" 
+                           id="track_${track.track_id}" 
+                           name="trackIds" 
+                           value="${track.track_id}">
+                    <label for="track_${track.track_id}">
+                        ${track.title} (${track.album.performer} - ${track.album.publicationYear})
+                    </label>
+                `;
+                group.appendChild(div);
+            });
+
+            button.disabled = false;
+        };
+
+        this.handleAddTracks = (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('playlist_id', this.currentPlaylistId);
+
+            this.container.querySelectorAll('input[name="trackIds"]:checked')
+                .forEach(input => formData.append('trackIds', input.value));
+
+            makeCall("POST", "AddTracksToPlaylist", formData, req => {
+                if (req.readyState !== XMLHttpRequest.DONE) return;
+                if (req.status === 200) {
+                    this.load(this.currentPlaylistId); // Ricarica la playlist
+                    this.msg.textContent = "Tracce aggiunte con successo!";
+                } else {
+                    this.msg.textContent = "Errore durante l'aggiunta: " + req.responseText;
                 }
             });
         };
@@ -479,13 +588,16 @@
             msg,
             detailView
         );
+
         let albumCreator = new AlbumCreator(
             document.getElementById("albumForm")
         );
+
         const trackUploader = new TrackUploader(
             document.getElementById("trackForm"),
             msg
         );
+
         let playlistCreator = new PlaylistCreator(
             document.getElementById("playlistForm")
         );
