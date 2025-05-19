@@ -180,10 +180,8 @@
             playlistIdInput.value = this.currentPlaylistId;
             form.appendChild(playlistIdInput);
 
-            const formData = new FormData(form);
-            form.removeChild(playlistIdInput);
-
-            makeCall("POST", URL_ADD_TRACKS_TO_PLAYLIST, formData, req => {
+            // PASSIAMO IL FORM, non FormData
+            makeCall("POST", URL_ADD_TRACKS_TO_PLAYLIST, form, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
                     this.tracks = [];
@@ -197,7 +195,11 @@
                     alert(req.responseText || "Errore sconosciuto");
                 }
             });
+
+            // Rimuovo l’input nascosto
+            form.removeChild(playlistIdInput);
         };
+
 
     }
 
