@@ -83,11 +83,11 @@
     // --- AlbumCreator: intercetta il form /SaveAlbum ---
     function AlbumCreator(formElem, msgElem) {
         this.form = formElem;
-        this.msg  = msgElem;
+        this.msg = msgElem;
 
-        // client‐side: max 5MB
+        // Controllo dimensione immagine
         this.form.querySelector('input[name="image"]').addEventListener("change", e => {
-            if (e.target.files[0].size > 5*1024*1024) {
+            if (e.target.files[0]?.size > 5 * 1024 * 1024) {
                 alert("La dimensione massima è 5MB");
                 e.target.value = "";
             }
@@ -95,47 +95,24 @@
 
         this.reset = () => this.form.reset();
 
-        this.show = () => {
-            // aggiorna la select degli album
-            makeCall("GET", URL_ALBUM_LIST, null, req => {
-                if (req.readyState !== XMLHttpRequest.DONE) return;
-                if (req.status === 200) {
-                    const opts = JSON.parse(req.responseText);
-                    const sel  = document.getElementById("albumSelect");
-                    sel.innerHTML = "";
-                    if (opts.length === 0) {
-                        const o = document.createElement("option");
-                        o.disabled = true; o.selected = true;
-                        o.textContent = "Nessun album disponibile";
-                        sel.appendChild(o);
-                    } else {
-                        const placeholder = document.createElement("option");
-                        placeholder.disabled = true; placeholder.selected = true;
-                        placeholder.textContent = "-- Select album --";
-                        sel.appendChild(placeholder);
-                        opts.forEach(a => {
-                            const o = document.createElement("option");
-                            o.value = a.albumId;
-                            o.textContent = `${a.title} (${a.publicationYear})`;
-                            sel.appendChild(o);
-                        });
-                    }
-                }
-            });
-        };
+        // FUNZIONE MODIFICATA (rimosso il popolamento della select)
+        this.show = () => {}; // Non serve nessuna operazione aggiuntiva
 
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
-                const fd = new FormData(this.form);
-                makeCall("POST", URL_CREATE_ALBUM, fd, req => {
+                // Passiamo direttamente il form a makeCall
+                makeCall("POST", URL_CREATE_ALBUM, this.form, req => {
                     if (req.readyState !== XMLHttpRequest.DONE) return;
-                    if (req.status === 200)      orchestrator.refresh();
-                    else if (req.status === 403) {
+                    if (req.status === 200) {
+                        orchestrator.refresh();
+                        alert("Album creato con successo!");
+                    } else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
+                    } else {
+                        alert(req.responseText || "Errore sconosciuto");
                     }
-                    else alert(req.responseText);
                 });
             }, false);
         };
