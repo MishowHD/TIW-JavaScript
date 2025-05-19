@@ -7,10 +7,12 @@
     const URL_UPLOAD_TRACK    = "UploadTrack";
     const URL_SAVE_PLAYLIST   = "SavePlaylist";
     const URL_GENRE_LIST      = "GetGenresData";
+    const URL_TRACK_DATA    = "GetTrackData";
 
-    function PlaylistDetailView(containerElem, msgElem) {
+    function PlaylistDetailView(containerElem, msgElem, playerView) {
         this.container     = containerElem;
         this.msg           = msgElem;
+        this.playerView   = playerView;
         this.tracks        = [];
         this.currentBlock  = 0;
         this.blockSize     = 5;
@@ -68,22 +70,26 @@
             const totalBlocks = Math.ceil(this.tracks.length / this.blockSize);
             if (blockIndex < 0 || blockIndex >= totalBlocks) return;
             this.currentBlock = blockIndex;
-            const start = blockIndex * this.blockSize;
-            const slice = this.tracks.slice(start, start + this.blockSize);
-
+            const slice = this.tracks.slice(blockIndex * this.blockSize, (blockIndex+1)*this.blockSize);
             const row = this.container.querySelector("#detailRow");
             row.innerHTML = "";
             slice.forEach(t => {
                 const td = document.createElement("td");
                 td.innerHTML = `
-                    <a href="GoToPlayer?track_id=${t.track_id}" class="track-link">
-                      <div class="track-title">${t.title}</div>
-                      ${ t.album.image
-                    ? `<img src="uploads/${t.album.image}" alt="cover" class="track-image">`
-                    : '' }
-                    </a>`;
+                <a href="#" class="track-link" data-track-id="${t.track_id}">
+                  <div class="track-title">${t.title}</div>
+                  ${ t.album.image
+                    ? `<img src="uploads/${t.album.image}" alt="cover" class="track-image">` : '' }
+                </a>
+            `;
                 row.appendChild(td);
             });
+            // Attach click handlers to launch in‑page player
+            this.container.querySelectorAll('a.track-link')
+                .forEach(a => a.addEventListener('click', e => {
+                    e.preventDefault();
+                    this.playerView.load(a.dataset.trackId);
+                }));
 
             // Mostra/Nascondi i bottoni dinamicamente
             const prevContainer = this.container.querySelector(".prev-button");
@@ -97,6 +103,63 @@
                 nextContainer.style.display = (blockIndex < totalBlocks - 1) ? "block" : "none";
             }
 
+        };
+    }
+    function PlayerView(containerElem, msgElem) {
+        this.container = containerElem;
+        this.msg       = msgElem;
+
+        // Load track metadata and audio URL via AJAX
+        this.load = (track_id) => {
+            this.msg.textContent = "";
+            makeCall("GET", `${URL_TRACK_DATA}?track_id=${track_id}`, null, req => {
+                if (req.readyState !== XMLHttpRequest.DONE) return;
+                if (req.status === 200) {
+                    const track = JSON.parse(req.responseText);
+                    // Build player UI
+                    this.container.innerHTML = `
+                    <div class="player-header">
+                        <h2>${track.title}</h2>
+                        <button id="closePlayer">Chiudi</button>
+                    </div>
+                    <div class="player-content">
+                        <div class="album-cover" >
+                            ${ track.album.image
+                        ? `<img src="uploads/${track.album.image}" alt="Album cover"/>` : ''}
+                        </div>
+                        <div class="track-info">
+                            <dl class="info-list">
+                                <dt>Performer:</dt><dd>${track.album.performer}</dd>
+                                <dt>Album:</dt><dd>${track.album.title} (${track.album.publicationYear})</dd>
+                                <dt>Genre:</dt><dd>${track.genre_name}</dd>
+                            </dl>
+                            <div class="audio-player">
+                                <audio controls>
+                                    <source src="uploads/${track.file_path}" type="audio/mpeg"/>
+                                    Il tuo browser non supporta l'elemento audio.
+                                </audio>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                    // Show player, hide playlist
+                    document.getElementById('playlistDetailContainer').style.display = 'none';
+                    this.container.style.display = 'block';
+                    // Close button
+                    this.container.querySelector('#closePlayer')
+                        .addEventListener('click', () => {
+                            this.container.style.display = 'none';
+                            document.getElementById('playlistDetailContainer').style.display = 'block';
+                        });
+                }
+                else if (req.status === 403) {
+                    window.location.href = req.getResponseHeader("Location");
+                    sessionStorage.removeItem("username");
+                }
+                else {
+                    this.msg.textContent = req.responseText;
+                }
+            });
         };
     }
 
@@ -400,9 +463,13 @@
 
         const msg = document.getElementById("messageContainer");
 
+        const playerView = new PlayerView(
+            document.getElementById("playerContainer"), msg
+        );
+
         const detailView = new PlaylistDetailView(
             document.getElementById("playlistDetailContainer"),
-            msg
+            msg, playerView
         );
         detailView.init();
 

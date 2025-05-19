@@ -222,6 +222,7 @@ input[type="checkbox"] {
 
 .album-cover {
     flex: 0 0 300px;
+    max-height: 300px;
 }
 
 .album-cover img {
