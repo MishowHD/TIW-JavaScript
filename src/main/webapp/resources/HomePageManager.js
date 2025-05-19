@@ -55,17 +55,18 @@
         this.update = (playlists) => {
             this.tbody.innerHTML = "";
             playlists.forEach(pl => {
+                console.log("Received playlist time:", pl.time, typeof pl.time);
                 const tr = document.createElement("tr");
 
                 const tdTitle = document.createElement("td");
                 const a = document.createElement("a");
-                a.href = `GoToPlaylist?playlist_id=${pl.playlistId}`;
+                a.href = `GoToPlaylist?playlist_id=${pl.playlist_id}`;
                 a.textContent = pl.title;
                 tdTitle.appendChild(a);
                 tr.appendChild(tdTitle);
 
                 const tdDate = document.createElement("td");
-                tdDate.textContent = new Date(pl.localDateTime)
+                tdDate.textContent = new Date(pl.time)
                     .toLocaleString("it-IT", {
                         day: "2-digit", month: "2-digit", year: "numeric",
                         hour: "2-digit", minute: "2-digit"
@@ -155,7 +156,7 @@
         });
 
         this.reset = () => this.form.reset();
-
+        this.show =() => {};
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
