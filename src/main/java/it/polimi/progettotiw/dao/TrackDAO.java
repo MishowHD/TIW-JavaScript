@@ -31,7 +31,7 @@ public class TrackDAO {
 
     public List<Track> findByUserOrdered(String username) throws SQLException {
         String sql = "SELECT t.track_id, t.title, t.file_path, t.genre_name, "
-                + "a.album_id, a.performer, a.publication_year, a.image "
+                + "a.album_id,a.title AS album_title, a.performer, a.publication_year, a.image "
                 + "FROM Tracks t "
                 + "JOIN Albums a ON t.album_id = a.album_id "
                 + "WHERE t.username = ? "
@@ -51,7 +51,7 @@ public class TrackDAO {
 
     public Track findById(int trackId) throws SQLException {
         String sql = "SELECT t.track_id, t.title, t.file_path, t.genre_name, "
-                + "a.album_id, a.performer, a.publication_year, a.image, a.title "
+                + "a.album_id,a.title AS album_title, a.performer, a.publication_year, a.image "
                 + "FROM Tracks t "
                 + "JOIN Albums a ON t.album_id = a.album_id "
                 + "WHERE t.track_id = ?";
@@ -69,7 +69,7 @@ public class TrackDAO {
 
     public List<Track> getTracksByPlaylistOrdered(int playlistId) throws SQLException {
         String sql = "SELECT t.track_id, t.title, t.file_path, t.genre_name, "
-                + "a.album_id, a.performer, a.publication_year, a.image "
+                + "a.album_id, a.title AS album_title, a.performer, a.publication_year, a.image "
                 + "FROM Tracks t "
                 + "JOIN Playlist_Tracks pt ON t.track_id = pt.track_id "
                 + "JOIN Albums a ON t.album_id = a.album_id "
@@ -99,10 +99,10 @@ public class TrackDAO {
         // Popola l'oggetto Album
         Album album = new Album();
         album.setAlbumId(rs.getInt("album_id"));
+        album.setTitle(rs.getString("album_title"));
         album.setPerformer(rs.getString("performer"));
         album.setPublicationYear(rs.getInt("publication_year"));
         album.setImage(rs.getString("image")); // Campo "image" dal database
-        album.setTitle(rs.getString("title"));
         track.setAlbum(album);
 
         return track;
