@@ -91,7 +91,7 @@ public class TrackDAO {
     // Mappatura centralizzata con oggetto Album
     private Track mapTrackFromResultSet(ResultSet rs) throws SQLException {
         Track track = new Track();
-        track.setTrackId(rs.getInt("track_id"));
+        track.setTrack_id(rs.getInt("track_id"));
         track.setTitle(rs.getString("title"));
         track.setFilePath(rs.getString("file_path"));
         track.setGenreName(rs.getString("genre_name"));

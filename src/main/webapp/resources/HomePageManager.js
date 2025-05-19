@@ -40,6 +40,7 @@
                     const resp = JSON.parse(req.responseText);
                     this.tracks       = resp.tracks;
                     this.currentBlock = 0;
+                    this.container.style.display = "block";
                     this.container.querySelector("#detailTitle").textContent = resp.playlist.title;
                     this.renderBlock(0);
                 }
@@ -369,7 +370,7 @@
         this.albumCreator.show();
         this.trackUploader.show();
         this.playlistCreator.show();
-        this.playlistDetail.container.innerHTML = "";  // Pulisce il dettaglio
+        this.playlistDetail.container.style.display = "none";
     };
 
     // --- Inizializzazione all’avvio della pagina ---

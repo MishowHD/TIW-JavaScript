@@ -11,11 +11,11 @@ public class Track implements Serializable {
     private String genre_name;
     private String username;
 
-    public int getTrackId() {
+    public int getTrack_id() {
         return track_id;
     }
 
-    public void setTrackId(int trackId) {
+    public void setTrack_id(int trackId) {
         this.track_id = trackId;
     }
 
