@@ -1,13 +1,13 @@
-(function(){
-    const URL_PLAYLIST_LIST   = "GetUserPlaylistsData";
-    const URL_PLAYLIST_DATA   = "GetPlaylistData";
-    const URL_ALBUM_LIST      = "GetAlbumData";
-    const URL_TRACK_LIST      = "GetUserTracksData";
-    const URL_CREATE_ALBUM    = "SaveAlbum";
-    const URL_UPLOAD_TRACK    = "UploadTrack";
-    const URL_SAVE_PLAYLIST   = "SavePlaylist";
-    const URL_GENRE_LIST      = "GetGenresData";
-    const URL_TRACK_DATA      = "GetTrackData";
+(function () {
+    const URL_PLAYLIST_LIST = "GetUserPlaylistsData";
+    const URL_PLAYLIST_DATA = "GetPlaylistData";
+    const URL_ALBUM_LIST = "GetAlbumData";
+    const URL_TRACK_LIST = "GetUserTracksData";
+    const URL_CREATE_ALBUM = "SaveAlbum";
+    const URL_UPLOAD_TRACK = "UploadTrack";
+    const URL_SAVE_PLAYLIST = "SavePlaylist";
+    const URL_GENRE_LIST = "GetGenresData";
+    const URL_TRACK_DATA = "GetTrackData";
     const URL_ADD_TRACKS_TO_PLAYLIST = "AddTracksToPlaylist";
 
     function PlaylistDetailView(containerElem, msgElem, playerView) {
@@ -18,6 +18,7 @@
         this.currentBlock = 0;
         this.blockSize = 5;
         this.currentPlaylistId = null;
+        this.addTracksForm = null;
 
         this.init = () => {
             this.container.innerHTML = `
@@ -44,13 +45,14 @@
                 </div>
             `;
 
+            this.addTracksForm = this.container.querySelector('#addTracksForm');
             this.container.querySelector("#prevBtn")
                 .addEventListener("click", () => this.renderBlock(this.currentBlock - 1));
             this.container.querySelector("#nextBtn")
                 .addEventListener("click", () => this.renderBlock(this.currentBlock + 1));
 
-            this.container.querySelector('#addTracksForm')
-                .addEventListener('submit', e => this.handleAddTracks(e));
+            // ora colleghiamo un unico handler
+            this.addTracksForm.addEventListener('submit', this.handleAddTracks.bind(this));
         };
 
         this.load = (playlist_id) => {
@@ -64,7 +66,7 @@
                 playerContainer.innerHTML = '';
             }
 
-            makeCall("GET", `${URL_PLAYLIST_DATA}?playlist_id=${playlist_id}`, null, req => {
+            makeCall("GET", `GetPlaylistData?playlist_id=${playlist_id}`, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
                     const resp = JSON.parse(req.responseText);
@@ -75,7 +77,7 @@
                     this.renderBlock(0);
 
                     // Carica tracce disponibili
-                    makeCall("GET", URL_TRACK_LIST, null, req2 => {
+                    makeCall("GET", "GetUserTracksData", null, req2 => {
                         if (req2.readyState === XMLHttpRequest.DONE && req2.status === 200) {
                             const allTracks = JSON.parse(req2.responseText);
                             const availableTracks = allTracks.filter(t =>
@@ -84,22 +86,21 @@
                             this.renderAvailableTracks(availableTracks);
                         }
                     });
-                }
-                else if (req.status === 403) {
+                } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
                     sessionStorage.removeItem("username");
-                }
-                else {
+                } else {
                     this.msg.textContent = req.responseText;
                 }
             });
         };
 
+
         this.renderBlock = (blockIndex) => {
             const totalBlocks = Math.ceil(this.tracks.length / this.blockSize);
             if (blockIndex < 0 || blockIndex >= totalBlocks) return;
             this.currentBlock = blockIndex;
-            const slice = this.tracks.slice(blockIndex * this.blockSize, (blockIndex+1)*this.blockSize);
+            const slice = this.tracks.slice(blockIndex * this.blockSize, (blockIndex + 1) * this.blockSize);
             const row = this.container.querySelector("#detailRow");
             row.innerHTML = "";
 
@@ -164,28 +165,35 @@
 
         this.handleAddTracks = (e) => {
             e.preventDefault();
-            const selected = this.container.querySelectorAll('input[name="trackIds[]"]:checked');
+            const form = e.target;
+            const selected = form.querySelectorAll('input[name="trackIds[]"]:checked');
+
             if (selected.length === 0) {
                 alert("Seleziona almeno un brano da aggiungere");
                 return;
             }
-            const formData = new FormData();
-            formData.append('playlist_id', this.currentPlaylistId);
-            selected.forEach(cb => formData.append('trackIds[]', cb.value));
+
+            // Aggiungo nascosto playlist_id
+            const playlistIdInput = document.createElement('input');
+            playlistIdInput.type = 'hidden';
+            playlistIdInput.name = 'playlist_id';
+            playlistIdInput.value = this.currentPlaylistId;
+            form.appendChild(playlistIdInput);
+
+            const formData = new FormData(form);
+            form.removeChild(playlistIdInput);
 
             makeCall("POST", URL_ADD_TRACKS_TO_PLAYLIST, formData, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
-                    // torniamo al primo blocco come da specifica
+                    this.tracks = [];
                     this.currentBlock = 0;
                     this.load(this.currentPlaylistId);
                     this.msg.textContent = "Tracce aggiunte con successo!";
-                }
-                else if (req.status === 403) {
+                } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
                     sessionStorage.removeItem("username");
-                }
-                else {
+                } else {
                     alert(req.responseText || "Errore sconosciuto");
                 }
             });
@@ -195,7 +203,7 @@
 
     function PlayerView(containerElem, msgElem) {
         this.container = containerElem;
-        this.msg       = msgElem;
+        this.msg = msgElem;
 
         // Load track metadata and audio URL via AJAX
         this.load = (track_id) => {
@@ -212,7 +220,7 @@
                     </div>
                     <div class="player-content">
                         <div class="album-cover" >
-                            ${ track.album.image
+                            ${track.album.image
                         ? `<img src="uploads/${track.album.image}" alt="Album cover"/>` : ''}
                         </div>
                         <div class="track-info">
@@ -238,12 +246,10 @@
                         .addEventListener('click', () => {
                             this.container.style.display = 'none';
                         });
-                }
-                else if (req.status === 403) {
+                } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
                     sessionStorage.removeItem("username");
-                }
-                else {
+                } else {
                     this.msg.textContent = req.responseText;
                 }
             });
@@ -251,9 +257,9 @@
     }
 
     function PlaylistTable(tableElem, tbodyElem, msgElem, detailView) {
-        this.table      = tableElem;
-        this.tbody      = tbodyElem;
-        this.msg        = msgElem;
+        this.table = tableElem;
+        this.tbody = tbodyElem;
+        this.msg = msgElem;
         this.detailView = detailView;
 
         this.reset = () => {
@@ -271,12 +277,10 @@
                         return;
                     }
                     this.update(data);
-                }
-                else if (req.status === 403) {
+                } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
                     sessionStorage.removeItem("username");
-                }
-                else {
+                } else {
                     this.msg.textContent = req.responseText;
                 }
             });
@@ -320,7 +324,8 @@
             }
         });
         this.reset = () => this.form.reset();
-        this.show = () => {}; // Nessuna operazione aggiuntiva
+        this.show = () => {
+        }; // Nessuna operazione aggiuntiva
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
@@ -342,7 +347,7 @@
 
     function TrackUploader(formElem, msgElem) {
         this.form = formElem;
-        this.msg  = msgElem;
+        this.msg = msgElem;
         this.form.querySelector('input[name="audioFile"]').addEventListener("change", e => {
             if (e.target.files[0]?.size > 10 * 1024 * 1024) {
                 alert("La dimensione massima è 10MB");
@@ -361,12 +366,14 @@
                     const albums = JSON.parse(req.responseText);
                     if (albums.length === 0) {
                         const o = document.createElement("option");
-                        o.disabled = true; o.selected = true;
+                        o.disabled = true;
+                        o.selected = true;
                         o.textContent = "Nessun album disponibile";
                         selAlbum.appendChild(o);
                     } else {
                         const placeholder = document.createElement("option");
-                        placeholder.disabled = true; placeholder.selected = true;
+                        placeholder.disabled = true;
+                        placeholder.selected = true;
                         placeholder.textContent = "-- Select album --";
                         selAlbum.appendChild(placeholder);
                         albums.forEach(a => {
@@ -403,12 +410,14 @@
                     const genres = JSON.parse(req.responseText);
                     if (genres.length === 0) {
                         const o = document.createElement("option");
-                        o.disabled = true; o.selected = true;
+                        o.disabled = true;
+                        o.selected = true;
                         o.textContent = "Nessun genere disponibile";
                         selGenre.appendChild(o);
                     } else {
                         const placeholder = document.createElement("option");
-                        placeholder.disabled = true; placeholder.selected = true;
+                        placeholder.disabled = true;
+                        placeholder.selected = true;
                         placeholder.textContent = "-- Select genre --";
                         selGenre.appendChild(placeholder);
                         genres.forEach(g => {
@@ -436,8 +445,7 @@
                     else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
-                    }
-                    else alert(req.responseText);
+                    } else alert(req.responseText);
                 });
             }, false);
         };
@@ -494,22 +502,21 @@
                     else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
-                    }
-                    else alert(req.responseText);
+                    } else alert(req.responseText);
                 });
             }, false);
         };
     }
 
     function HomePageManager(pt, pd, ac, tu, pc) {
-        this.playlistTable   = pt;
-        this.playlistDetail  = pd;
-        this.albumCreator    = ac;
-        this.trackUploader   = tu;
+        this.playlistTable = pt;
+        this.playlistDetail = pd;
+        this.albumCreator = ac;
+        this.trackUploader = tu;
         this.playlistCreator = pc;
     }
 
-    HomePageManager.prototype.start = function() {
+    HomePageManager.prototype.start = function () {
         this.albumCreator.registerEvents(this);
         this.trackUploader.registerEvents(this);
         this.playlistCreator.registerEvents(this);
@@ -518,7 +525,7 @@
             .addEventListener("click", () => sessionStorage.removeItem("username"), false);
     };
 
-    HomePageManager.prototype.refresh = function() {
+    HomePageManager.prototype.refresh = function () {
         document.getElementById("messageContainer").textContent = "";
         this.playlistTable.reset();
         this.albumCreator.reset();
