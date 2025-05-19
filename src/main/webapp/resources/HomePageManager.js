@@ -1,4 +1,3 @@
-
 (function(){
     const URL_PLAYLIST_LIST   = "GetUserPlaylistsData";
     const URL_PLAYLIST_DATA   = "GetPlaylistData";
@@ -9,6 +8,7 @@
     const URL_SAVE_PLAYLIST   = "SavePlaylist";
     const URL_GENRE_LIST      = "GetGenresData";
     const URL_TRACK_DATA      = "GetTrackData";
+    const URL_ADD_TRACKS_TO_PLAYLIST = "AddTracksToPlaylist";
 
     function PlaylistDetailView(containerElem, msgElem, playerView) {
         this.container = containerElem;
@@ -56,6 +56,13 @@
         this.load = (playlist_id) => {
             this.currentPlaylistId = playlist_id;
             this.msg.textContent = "";
+
+            // Chiudi il player se aperto
+            const playerContainer = document.getElementById('playerContainer');
+            if (playerContainer) {
+                playerContainer.style.display = 'none';
+                playerContainer.innerHTML = '';
+            }
 
             makeCall("GET", `${URL_PLAYLIST_DATA}?playlist_id=${playlist_id}`, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
@@ -143,7 +150,7 @@
                 div.innerHTML = `
                     <input type="checkbox" 
                            id="track_${track.track_id}" 
-                           name="trackIds" 
+                           name="trackIds[]" 
                            value="${track.track_id}">
                     <label for="track_${track.track_id}">
                         ${track.title} (${track.album.performer} - ${track.album.publicationYear})
@@ -157,63 +164,35 @@
 
         this.handleAddTracks = (e) => {
             e.preventDefault();
+            const selected = this.container.querySelectorAll('input[name="trackIds[]"]:checked');
+            if (selected.length === 0) {
+                alert("Seleziona almeno un brano da aggiungere");
+                return;
+            }
             const formData = new FormData();
             formData.append('playlist_id', this.currentPlaylistId);
+            selected.forEach(cb => formData.append('trackIds[]', cb.value));
 
-            this.container.querySelectorAll('input[name="trackIds"]:checked')
-                .forEach(input => formData.append('trackIds', input.value));
-
-            makeCall("POST", "AddTracksToPlaylist", formData, req => {
+            makeCall("POST", URL_ADD_TRACKS_TO_PLAYLIST, formData, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
-                    this.load(this.currentPlaylistId); // Ricarica la playlist
+                    // torniamo al primo blocco come da specifica
+                    this.currentBlock = 0;
+                    this.load(this.currentPlaylistId);
                     this.msg.textContent = "Tracce aggiunte con successo!";
-                } else {
-                    this.msg.textContent = "Errore durante l'aggiunta: " + req.responseText;
+                }
+                else if (req.status === 403) {
+                    window.location.href = req.getResponseHeader("Location");
+                    sessionStorage.removeItem("username");
+                }
+                else {
+                    alert(req.responseText || "Errore sconosciuto");
                 }
             });
         };
 
-        // Renderizza il blocco specificato
-        this.renderBlock = (blockIndex) => {
-            const totalBlocks = Math.ceil(this.tracks.length / this.blockSize);
-            if (blockIndex < 0 || blockIndex >= totalBlocks) return;
-            this.currentBlock = blockIndex;
-            const slice = this.tracks.slice(blockIndex * this.blockSize, (blockIndex+1)*this.blockSize);
-            const row = this.container.querySelector("#detailRow");
-            row.innerHTML = "";
-            slice.forEach(t => {
-                const td = document.createElement("td");
-                td.innerHTML = `
-                <a href="#" class="track-link" data-track-id="${t.track_id}">
-                  <div class="track-title">${t.title}</div>
-                  ${ t.album.image
-                    ? `<img src="uploads/${t.album.image}" alt="cover" class="track-image">` : '' }
-                </a>
-            `;
-                row.appendChild(td);
-            });
-            // Attach click handlers to launch in‑page player
-            this.container.querySelectorAll('a.track-link')
-                .forEach(a => a.addEventListener('click', e => {
-                    e.preventDefault();
-                    this.playerView.load(a.dataset.trackId);
-                }));
-
-            // Mostra/Nascondi i bottoni dinamicamente
-            const prevContainer = this.container.querySelector(".prev-button");
-            const nextContainer = this.container.querySelector(".next-button");
-
-            if (totalBlocks <= 1) {
-                prevContainer.style.display = "none";
-                nextContainer.style.display = "none";
-            } else {
-                prevContainer.style.display = (blockIndex > 0) ? "block" : "none";
-                nextContainer.style.display = (blockIndex < totalBlocks - 1) ? "block" : "none";
-            }
-
-        };
     }
+
     function PlayerView(containerElem, msgElem) {
         this.container = containerElem;
         this.msg       = msgElem;
@@ -251,14 +230,13 @@
                         </div>
                     </div>
                 `;
-                    // Show player, hide playlist
-                    document.getElementById('playlistDetailContainer').style.display = 'none';
+                    // Mostra solo il player, senza nascondere la lista tracce
                     this.container.style.display = 'block';
-                    // Close button
+
+                    // Close button: chiudi solo il player
                     this.container.querySelector('#closePlayer')
                         .addEventListener('click', () => {
                             this.container.style.display = 'none';
-                            document.getElementById('playlistDetailContainer').style.display = 'block';
                         });
                 }
                 else if (req.status === 403) {
@@ -272,7 +250,6 @@
         };
     }
 
-    // --- PlaylistTable: lista delle playlist, click per dettaglio AJAX ---
     function PlaylistTable(tableElem, tbodyElem, msgElem, detailView) {
         this.table      = tableElem;
         this.tbody      = tbodyElem;
@@ -309,8 +286,6 @@
             this.tbody.innerHTML = "";
             playlists.forEach(pl => {
                 const tr = document.createElement("tr");
-
-                // Titolo come link AJAX
                 const tdTitle = document.createElement("td");
                 const a = document.createElement("a");
                 a.href = "#";
@@ -322,7 +297,6 @@
                 tdTitle.appendChild(a);
                 tr.appendChild(tdTitle);
 
-                // Data creazione
                 const tdDate = document.createElement("td");
                 tdDate.textContent = new Date(pl.time)
                     .toLocaleString("it-IT", {
@@ -337,23 +311,16 @@
         };
     }
 
-
-    // --- AlbumCreator: intercetta il form /SaveAlbum ---
     function AlbumCreator(formElem) {
         this.form = formElem;
-// Controllo dimensione immagine
         this.form.querySelector('input[name="image"]').addEventListener("change", e => {
             if (e.target.files[0]?.size > 5 * 1024 * 1024) {
                 alert("La dimensione massima è 5MB");
                 e.target.value = "";
             }
         });
-
         this.reset = () => this.form.reset();
-
-        // FUNZIONE MODIFICATA (rimosso il popolamento della select)
-        this.show = () => {}; // Non serve nessuna operazione aggiuntiva
-
+        this.show = () => {}; // Nessuna operazione aggiuntiva
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
@@ -373,24 +340,19 @@
         };
     }
 
-
-    // --- TrackUploader: intercetta il form /UploadTrack ---
     function TrackUploader(formElem, msgElem) {
         this.form = formElem;
         this.msg  = msgElem;
-
-        // client‐side: max 10MB
         this.form.querySelector('input[name="audioFile"]').addEventListener("change", e => {
             if (e.target.files[0]?.size > 10 * 1024 * 1024) {
                 alert("La dimensione massima è 10MB");
                 e.target.value = "";
             }
         });
-
         this.reset = () => this.form.reset();
 
         this.show = () => {
-            // 1) Popola gli album
+            // Popola gli album
             makeCall("GET", URL_ALBUM_LIST, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 const selAlbum = document.getElementById("albumSelect");
@@ -413,6 +375,16 @@
                             o.textContent = `${a.title} (${a.publicationYear})`;
                             selAlbum.appendChild(o);
                         });
+                        // Chiudi il player se selezioni un altro album
+                        selAlbum.addEventListener('change', () => {
+                            const player = document.getElementById('playerContainer');
+                            if (player) {
+                                player.style.display = 'none';
+                                player.innerHTML = '';
+                            }
+                            const detail = document.getElementById('playlistDetailContainer');
+                            if (detail) detail.style.display = 'block';
+                        });
                     }
                 } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
@@ -422,7 +394,7 @@
                 }
             });
 
-            // 2) Popola i generi
+            // Popola i generi
             makeCall("GET", URL_GENRE_LIST, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 const selGenre = document.getElementById("genreSelect");
@@ -460,7 +432,7 @@
                 e.preventDefault();
                 makeCall("POST", URL_UPLOAD_TRACK, this.form, req => {
                     if (req.readyState !== XMLHttpRequest.DONE) return;
-                    if (req.status === 200)      orchestrator.refresh();
+                    if (req.status === 200) orchestrator.refresh();
                     else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
@@ -471,8 +443,6 @@
         };
     }
 
-
-    // --- PlaylistCreator: intercetta il form /SavePlaylist con i checkbox ---
     function PlaylistCreator(formElem) {
         this.form = formElem;
         this.group = formElem.querySelector(".checkbox-group");
@@ -520,7 +490,7 @@
                 }
                 makeCall("POST", URL_SAVE_PLAYLIST, this.form, req => {
                     if (req.readyState !== XMLHttpRequest.DONE) return;
-                    if (req.status === 200)      orchestrator.refresh();
+                    if (req.status === 200) orchestrator.refresh();
                     else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
@@ -531,8 +501,6 @@
         };
     }
 
-
-    // --- PageOrchestrator (HomePageManager) ---
     function HomePageManager(pt, pd, ac, tu, pc) {
         this.playlistTable   = pt;
         this.playlistDetail  = pd;
@@ -563,7 +531,6 @@
         this.playlistDetail.container.style.display = "none";
     };
 
-    // --- Inizializzazione all’avvio della pagina ---
     window.addEventListener("load", () => {
         if (!sessionStorage.getItem("username")) {
             window.location.href = "loginPage.html";
@@ -589,7 +556,7 @@
             detailView
         );
 
-        let albumCreator = new AlbumCreator(
+        const albumCreator = new AlbumCreator(
             document.getElementById("albumForm")
         );
 
@@ -598,7 +565,7 @@
             msg
         );
 
-        let playlistCreator = new PlaylistCreator(
+        const playlistCreator = new PlaylistCreator(
             document.getElementById("playlistForm")
         );
 
@@ -612,5 +579,4 @@
         manager.start();
         manager.refresh();
     }, false);
-
 })();
