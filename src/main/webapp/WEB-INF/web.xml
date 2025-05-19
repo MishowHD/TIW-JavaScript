@@ -32,6 +32,13 @@
     </filter>
     <filter-mapping>
         <filter-name>Checker</filter-name>
+        <url-pattern>/homePage.html</url-pattern>
+        <url-pattern>/GetAlbumData</url-pattern>
+        <url-pattern>/GetGenresData</url-pattern>
+        <url-pattern>/GetPlaylistData</url-pattern>
+        <url-pattern>/GetTrackData</url-pattern>
+        <url-pattern>/GetUserPlaylistData</url-pattern>
+        <url-pattern>/GetUserTracksData</url-pattern>
         <url-pattern>/SaveAlbum</url-pattern>
         <url-pattern>/UploadTrack</url-pattern>
         <url-pattern>/SavePlaylist</url-pattern>

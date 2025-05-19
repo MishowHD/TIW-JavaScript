@@ -68,7 +68,7 @@ public class Checker implements Filter {
 					return;
 				}
 			}
-			if (uri.startsWith(context + "/GoToPlayer")) {
+			if (uri.startsWith(context + "/GetTrackData")) {
 				String idStr = req.getParameter("track_id");
 				if (idStr == null || idStr.isEmpty()) {
 					res.sendError(400, "Parametro track_id mancante");
@@ -88,7 +88,7 @@ public class Checker implements Filter {
 					return;
 				}
 			}
-			if (uri.startsWith(context + "/GoToPlaylist")) {
+			if (uri.startsWith(context + "/GetPlaylistData")) {
 				String idStr = req.getParameter("playlist_id");
 				if (idStr == null || idStr.isEmpty()) {
 					res.sendError(400, "Parametro playlist_id mancante");
