@@ -137,8 +137,7 @@
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
-                const fd = new FormData(this.form);
-                makeCall("POST", URL_UPLOAD_TRACK, fd, req => {
+                makeCall("POST", URL_UPLOAD_TRACK, this.form, req => {
                     if (req.readyState !== XMLHttpRequest.DONE) return;
                     if (req.status === 200)      orchestrator.refresh();
                     else if (req.status === 403) {
@@ -148,6 +147,7 @@
                     else alert(req.responseText);
                 });
             }, false);
+
         };
     }
 
@@ -199,8 +199,7 @@
                     alert("Seleziona almeno un brano");
                     return;
                 }
-                const fd = new FormData(this.form);
-                makeCall("POST", URL_SAVE_PLAYLIST, fd, req => {
+                makeCall("POST", URL_SAVE_PLAYLIST, this.form, req => {
                     if (req.readyState !== XMLHttpRequest.DONE) return;
                     if (req.status === 200)      orchestrator.refresh();
                     else if (req.status === 403) {
@@ -210,6 +209,7 @@
                     else alert(req.responseText);
                 });
             }, false);
+
         };
     }
 
