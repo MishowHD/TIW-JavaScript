@@ -1,7 +1,9 @@
 package it.polimi.progettotiw.controllers;
 
+import it.polimi.progettotiw.beans.User;
 import it.polimi.progettotiw.dao.PlaylistDAO;
 import it.polimi.progettotiw.ConnectionHandler; // o come gestisci la connessione
+import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServletResponse;
 
 import jakarta.servlet.ServletException;
@@ -14,6 +16,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @WebServlet("/SavePlaylistOrder")
+@MultipartConfig
 public class SavePlaylistOrder extends HttpServlet {
     private static final long serialVersionUID = 1L;
     private Connection connection;
@@ -27,13 +30,8 @@ public class SavePlaylistOrder extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        // 1) Controllo autenticazione
-        HttpSession session = request.getSession(false);
-        String username = (session != null) ? (String) session.getAttribute("username") : null;
-        if (username == null) {
-            response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            return;
-        }
+        User user = (User) request.getSession().getAttribute("user");
+        String username = user.getUsername();
 
         // 2) Parsing parametri
         int playlistId;
@@ -41,13 +39,13 @@ public class SavePlaylistOrder extends HttpServlet {
             playlistId = Integer.parseInt(request.getParameter("playlist_id"));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("Invalid playlist_id");
+            response.getWriter().println("Invalid playlist_id");
             return;
         }
         String[] trackIdsParam = request.getParameterValues("trackIds[]");
         if (trackIdsParam == null || trackIdsParam.length == 0) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("No trackIds provided");
+            response.getWriter().println("No trackIds provided");
             return;
         }
 
@@ -69,7 +67,7 @@ public class SavePlaylistOrder extends HttpServlet {
 
         } catch (SQLException e) {
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("DB error: " + e.getMessage());
+            response.getWriter().println("DB error: " + e.getMessage());
         }
     }
 

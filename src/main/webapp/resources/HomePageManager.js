@@ -22,8 +22,12 @@
       <div id="reorderModal" style="
             position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
             background:#fff;padding:1em;display:none;z-index:1001;
-            max-height:80%;overflow:auto;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.3);">
+            max-height:80%;overflow:auto;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.3);
+            min-width:300px;">
         <h2>Riordino Playlist</h2>
+        <div id="loadingIndicator" style="display:none;text-align:center;padding:10px;">
+            Caricamento in corso...
+        </div>
         <ul id="reorderList" style="list-style:none;padding:0;margin:0;"></ul>
         <div style="margin-top:1em;text-align:right;">
           <button id="cancelReorderBtn" style="margin-right:0.5em;">Annulla</button>
@@ -33,61 +37,182 @@
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
     // -------------------
-    // FUNZIONI DRAG & DROP
+    // FUNZIONI DRAG & DROP (migliorate con feedback visivo)
     // -------------------
     let dragSrcEl = null;
+    let dragTarget = null;
+    let dragPosition = null;
+
     function handleDragStart(e) {
         dragSrcEl = e.target;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', null);
+        // Aggiunge classe per feedback visivo
+        setTimeout(() => {
+            dragSrcEl.classList.add('dragging');
+        }, 0);
     }
+
     function handleDragOver(e) {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
-        return false;
-    }
-    function handleDrop(e) {
-        e.stopPropagation();
-        if (dragSrcEl !== e.target && e.target.tagName === 'LI') {
-            // inserisce il dragged item prima di quello su cui droppa
-            const list = e.target.parentNode;
-            list.insertBefore(dragSrcEl, e.target.nextSibling);
+
+        // Reset previous target highlights
+        if (dragTarget) dragTarget.classList.remove('drag-over', 'drag-above', 'drag-below');
+
+        if (e.target.tagName === 'LI' && e.target !== dragSrcEl) {
+            dragTarget = e.target;
+            const rect = dragTarget.getBoundingClientRect();
+            const midpoint = rect.top + rect.height / 2;
+
+            if (e.clientY < midpoint) {
+                // Drop above
+                dragTarget.classList.add('drag-over', 'drag-above');
+                dragPosition = 'above';
+            } else {
+                // Drop below
+                dragTarget.classList.add('drag-over', 'drag-below');
+                dragPosition = 'below';
+            }
         }
         return false;
     }
 
+    function handleDragLeave(e) {
+        if (dragTarget) {
+            dragTarget.classList.remove('drag-over', 'drag-above', 'drag-below');
+            dragTarget = null;
+        }
+    }
+
+    function handleDragEnd(e) {
+        // Ripristina tutti gli elementi
+        document.querySelectorAll('#reorderList li').forEach(item => {
+            item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
+        });
+        dragSrcEl = null;
+        dragTarget = null;
+    }
+
+    function handleDrop(e) {
+        e.stopPropagation();
+
+        // Rimuovi tutte le classi di feedback
+        document.querySelectorAll('#reorderList li').forEach(item => {
+            item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
+        });
+
+        if (dragSrcEl !== e.target && e.target.tagName === 'LI') {
+            const list = e.target.parentNode;
+
+            // Inserisci sopra o sotto in base alla posizione del mouse
+            if (dragPosition === 'above') {
+                list.insertBefore(dragSrcEl, e.target);
+            } else {
+                list.insertBefore(dragSrcEl, e.target.nextSibling);
+            }
+        }
+
+        // Gestione del caso in cui si trascina in una lista vuota
+        if (e.target.tagName === 'UL' && e.target.id === 'reorderList') {
+            e.target.appendChild(dragSrcEl);
+        }
+
+        return false;
+    }
+
     // -------------------
-    // APRI / CHIUDI MODALE
+    // CSS per il feedback visivo
     // -------------------
+    const dragDropStyles = document.createElement('style');
+    dragDropStyles.textContent = `
+        #reorderList li {
+            padding: 0.5em;
+            border: 1px solid #ccc;
+            margin-bottom: 0.2em;
+            cursor: move;
+            background: white;
+            transition: transform 0.1s, box-shadow 0.1s;
+        }
+        #reorderList li.dragging {
+            opacity: 0.5;
+            transform: scale(0.98);
+        }
+        #reorderList li.drag-over {
+            border-color: #666;
+        }
+        #reorderList li.drag-above {
+            border-top: 2px solid #0066cc;
+        }
+        #reorderList li.drag-below {
+            border-bottom: 2px solid #0066cc;
+        }
+    `;
+    document.head.appendChild(dragDropStyles);
+    // -------------------
+    // APRI / CHIUDI MODALE (migliorato con accessibilità ed errori gestiti)
+    // -------------------
+    function showLoadingIndicator() {
+        document.getElementById("loadingIndicator").style.display = 'block';
+        document.getElementById("reorderList").style.display = 'none';
+    }
+
+    function hideLoadingIndicator() {
+        document.getElementById("loadingIndicator").style.display = 'none';
+        document.getElementById("reorderList").style.display = 'block';
+    }
+
+// APRI MODALE RIORDINO
     function openReorderModal(playlistId) {
         const overlay = document.getElementById("modalOverlay");
-        const modal = document.getElementById("reorderModal");
-        const list = document.getElementById("reorderList");
-        overlay.style.display = 'block';
-        modal.style.display = 'block';
-        list.innerHTML = '';
+        const modal   = document.getElementById("reorderModal");
+        const list    = document.getElementById("reorderList");
 
-        // carica tutte le tracce della playlist
-        console.log("openReorderModal:", { URL_PLAYLIST_DATA, playlistId });
+        // mostra overlay e modal
+        overlay.style.display = 'block';
+        modal.style.display   = 'block';
+        list.innerHTML        = '';
+
+        showLoadingIndicator();
+
+        // carica direttamente le tracce, senza controllare ownership lato client
+        loadPlaylistTracks(playlistId);
+    }
+
+    function loadPlaylistTracks(playlistId) {
+        const list = document.getElementById("reorderList");
+        const modal = document.getElementById("reorderModal");
+
         makeCall("GET", `${URL_PLAYLIST_DATA}?playlist_id=${playlistId}`, null, req => {
             if (req.readyState !== XMLHttpRequest.DONE) return;
+            hideLoadingIndicator();
+
             if (req.status === 200) {
                 const resp = JSON.parse(req.responseText);
-                resp.tracks.forEach(t => {
-                    const li = document.createElement("li");
-                    li.textContent = t.title;
-                    li.setAttribute("draggable", "true");
-                    li.dataset.trackId = t.track_id;
-                    li.style.padding = '0.5em';
-                    li.style.border = '1px solid #ccc';
-                    li.style.marginBottom = '0.2em';
-                    li.style.cursor = 'move';
-                    li.addEventListener("dragstart", handleDragStart);
-                    li.addEventListener("dragover", handleDragOver);
-                    li.addEventListener("drop", handleDrop);
-                    list.appendChild(li);
-                });
+                if (resp.tracks.length === 0) {
+                    list.innerHTML = '<li style="text-align:center;cursor:default;">Nessuna traccia in questa playlist</li>';
+                } else {
+                    // Creare gli elementi della lista con gli ID traccia
+                    resp.tracks.forEach(t => {
+                        const li = document.createElement("li");
+                        li.textContent = t.title;
+                        li.setAttribute("draggable", "true");
+                        li.dataset.trackId = t.track_id;
+
+                        // Event listeners per drag-and-drop
+                        li.addEventListener("dragstart", handleDragStart);
+                        li.addEventListener("dragover", handleDragOver);
+                        li.addEventListener("dragleave", handleDragLeave);
+                        li.addEventListener("dragend", handleDragEnd);
+                        li.addEventListener("drop", handleDrop);
+
+                        list.appendChild(li);
+                    });
+                }
+
+                // Aggiungi l'ID playlist come data attribute del modal
                 modal.dataset.playlistId = playlistId;
+                modal.dataset.originalTrackCount = resp.tracks.length;
             } else if (req.status === 403) {
                 window.location.href = req.getResponseHeader("Location");
                 sessionStorage.removeItem("username");
@@ -97,23 +222,48 @@
             }
         });
     }
+
     function closeReorderModal() {
         document.getElementById("modalOverlay").style.display = 'none';
         document.getElementById("reorderModal").style.display = 'none';
+        // Ripulisci eventuali stati residui
+        document.querySelectorAll('#reorderList li').forEach(item => {
+            item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
+        });
     }
 
-    // salva l’ordinamento PERSONALIZZATO sul server
-    // Salva l’ordinamento PERSONALIZZATO
+    // Chiusura del modal con ESC
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && document.getElementById("modalOverlay").style.display === 'block') {
+            closeReorderModal();
+        }
+    });
+
+    // Salva l'ordinamento PERSONALIZZATO con validazione
     document.getElementById("saveReorderBtn").addEventListener("click", function () {
         const modal = document.getElementById("reorderModal");
         const playlistId = modal.dataset.playlistId;
+        const originalCount = parseInt(modal.dataset.originalTrackCount || '0');
         const items = Array.from(document.querySelectorAll("#reorderList li"));
+
         if (items.length === 0) {
             alert("Nessuna traccia da salvare");
             return;
         }
 
-        // Creo un form HTML "fittizio" con gli input nascosti
+        // Validazione: controlla che il numero di tracce sia rimasto lo stesso
+        if (items.length !== originalCount) {
+            alert(`Errore: il numero di tracce è cambiato (originale: ${originalCount}, attuale: ${items.length})`);
+            return;
+        }
+
+        // Disabilita il pulsante durante il salvataggio
+        const saveButton = document.getElementById("saveReorderBtn");
+        const originalText = saveButton.textContent;
+        saveButton.disabled = true;
+        saveButton.textContent = "Salvataggio...";
+
+        // Crea un form "fittizio" con gli input nascosti
         const tempForm = document.createElement("form");
 
         // input per playlist_id
@@ -132,8 +282,12 @@
             tempForm.appendChild(input);
         });
 
-        // Chiamo makeCall passandogli il form vero
+        // Chiamo makeCall passandogli il form
         makeCall("POST", URL_SAVE_ORDER, tempForm, function (req) {
+            // Ripristina il pulsante
+            saveButton.disabled = false;
+            saveButton.textContent = originalText;
+
             if (req.readyState !== XMLHttpRequest.DONE) return;
             if (req.status === 200) {
                 closeReorderModal();
