@@ -25,6 +25,27 @@
         <param-name>UPLOAD_BASE</param-name>
         <param-value>/home/mishow/UploadsTIW</param-value>
     </context-param>
+    <error-page>
+        <exception-type>java.lang.IllegalStateException</exception-type>
+        <location>/ErrorHandler</location>
+    </error-page>
+    <!-- Error‐page 500 generico -->
+    <error-page>
+        <error-code>500</error-code>
+        <location>/ErrorHandler</location>
+    </error-page>
+    <error-page>
+        <error-code>403</error-code>
+        <location>/ErrorHandler</location>
+    </error-page>
+    <error-page>
+        <error-code>400</error-code>
+        <location>/ErrorHandler</location>
+    </error-page>
+    <error-page>
+        <exception-type>java.lang.Throwable</exception-type>
+        <location>/ErrorHandler</location>
+    </error-page>
     <!-- Filtro Checker -->
     <filter>
         <filter-name>Checker</filter-name>
