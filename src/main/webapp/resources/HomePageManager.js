@@ -11,9 +11,6 @@
     const URL_ADD_TRACKS_TO_PLAYLIST = "AddTracksToPlaylist";
     const URL_SAVE_ORDER = "SavePlaylistOrder";
 
-    // -------------------
-    // INIEZIONE MODALE RIORDINO
-    // -------------------
     const modalHTML = `
       <div id="modalOverlay" style="
             position:fixed;top:0;left:0;width:100%;height:100%;
@@ -24,21 +21,18 @@
             background:#fff;padding:1em;display:none;z-index:1001;
             max-height:80%;overflow:auto;border-radius:8px;box-shadow:0 2px 10px rgba(0,0,0,0.3);
             min-width:300px;">
-        <h2>Riordino Playlist</h2>
+        <h2>Reorder playlist</h2>
         <div id="loadingIndicator" style="display:none;text-align:center;padding:10px;">
-            Caricamento in corso...
+            Loading in progress, please wait...
         </div>
         <ul id="reorderList" style="list-style:none;padding:0;margin:0;"></ul>
         <div style="margin-top:1em;text-align:right;">
-          <button id="cancelReorderBtn" style="margin-right:0.5em;">Annulla</button>
-          <button id="saveReorderBtn">Salva ordinamento</button>
+          <button id="cancelReorderBtn" style="margin-right:0.5em;">Cancel</button>
+          <button id="saveReorderBtn">Save order</button>
         </div>
       </div>`;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
 
-    // -------------------
-    // FUNZIONI DRAG & DROP (migliorate con feedback visivo)
-    // -------------------
     let dragSrcEl = null;
     let dragTarget = null;
     let dragPosition = null;
@@ -47,7 +41,6 @@
         dragSrcEl = e.target;
         e.dataTransfer.effectAllowed = 'move';
         e.dataTransfer.setData('text/plain', null);
-        // Aggiunge classe per feedback visivo
         setTimeout(() => {
             dragSrcEl.classList.add('dragging');
         }, 0);
@@ -57,20 +50,16 @@
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
 
-        // Reset previous target highlights
         if (dragTarget) dragTarget.classList.remove('drag-over', 'drag-above', 'drag-below');
 
         if (e.target.tagName === 'LI' && e.target !== dragSrcEl) {
             dragTarget = e.target;
             const rect = dragTarget.getBoundingClientRect();
             const midpoint = rect.top + rect.height / 2;
-
             if (e.clientY < midpoint) {
-                // Drop above
                 dragTarget.classList.add('drag-over', 'drag-above');
                 dragPosition = 'above';
             } else {
-                // Drop below
                 dragTarget.classList.add('drag-over', 'drag-below');
                 dragPosition = 'below';
             }
@@ -86,7 +75,6 @@
     }
 
     function handleDragEnd(e) {
-        // Ripristina tutti gli elementi
         document.querySelectorAll('#reorderList li').forEach(item => {
             item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
         });
@@ -96,24 +84,17 @@
 
     function handleDrop(e) {
         e.stopPropagation();
-
-        // Rimuovi tutte le classi di feedback
         document.querySelectorAll('#reorderList li').forEach(item => {
             item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
         });
-
         if (dragSrcEl !== e.target && e.target.tagName === 'LI') {
             const list = e.target.parentNode;
-
-            // Inserisci sopra o sotto in base alla posizione del mouse
             if (dragPosition === 'above') {
                 list.insertBefore(dragSrcEl, e.target);
             } else {
                 list.insertBefore(dragSrcEl, e.target.nextSibling);
             }
         }
-
-        // Gestione del caso in cui si trascina in una lista vuota
         if (e.target.tagName === 'UL' && e.target.id === 'reorderList') {
             e.target.appendChild(dragSrcEl);
         }
@@ -121,9 +102,6 @@
         return false;
     }
 
-    // -------------------
-    // CSS per il feedback visivo
-    // -------------------
     const dragDropStyles = document.createElement('style');
     dragDropStyles.textContent = `
         #reorderList li {
@@ -149,9 +127,7 @@
         }
     `;
     document.head.appendChild(dragDropStyles);
-    // -------------------
-    // APRI / CHIUDI MODALE (migliorato con accessibilità ed errori gestiti)
-    // -------------------
+
     function showLoadingIndicator() {
         document.getElementById("loadingIndicator").style.display = 'block';
         document.getElementById("reorderList").style.display = 'none';
@@ -162,20 +138,14 @@
         document.getElementById("reorderList").style.display = 'block';
     }
 
-// APRI MODALE RIORDINO
     function openReorderModal(playlistId) {
         const overlay = document.getElementById("modalOverlay");
         const modal   = document.getElementById("reorderModal");
         const list    = document.getElementById("reorderList");
-
-        // mostra overlay e modal
         overlay.style.display = 'block';
         modal.style.display   = 'block';
         list.innerHTML        = '';
-
         showLoadingIndicator();
-
-        // carica direttamente le tracce, senza controllare ownership lato client
         loadPlaylistTracks(playlistId);
     }
 
@@ -190,16 +160,13 @@
             if (req.status === 200) {
                 const resp = JSON.parse(req.responseText);
                 if (resp.tracks.length === 0) {
-                    list.innerHTML = '<li style="text-align:center;cursor:default;">Nessuna traccia in questa playlist</li>';
+                    list.innerHTML = '<li style="text-align:center;cursor:default;">No tracks in this playlist</li>';
                 } else {
-                    // Creare gli elementi della lista con gli ID traccia
                     resp.tracks.forEach(t => {
                         const li = document.createElement("li");
                         li.textContent = t.title;
                         li.setAttribute("draggable", "true");
                         li.dataset.trackId = t.track_id;
-
-                        // Event listeners per drag-and-drop
                         li.addEventListener("dragstart", handleDragStart);
                         li.addEventListener("dragover", handleDragOver);
                         li.addEventListener("dragleave", handleDragLeave);
@@ -209,15 +176,13 @@
                         list.appendChild(li);
                     });
                 }
-
-                // Aggiungi l'ID playlist come data attribute del modal
                 modal.dataset.playlistId = playlistId;
                 modal.dataset.originalTrackCount = resp.tracks.length;
             } else if (req.status === 403) {
                 window.location.href = req.getResponseHeader("Location");
                 sessionStorage.removeItem("username");
             } else {
-                alert(req.responseText || "Errore nel caricamento delle tracce");
+                alert(req.responseText || "Error in tracks loading");
                 closeReorderModal();
             }
         });
@@ -231,15 +196,11 @@
             item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
         });
     }
-
-    // Chiusura del modal con ESC
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape' && document.getElementById("modalOverlay").style.display === 'block') {
             closeReorderModal();
         }
     });
-
-    // Salva l'ordinamento PERSONALIZZATO con validazione
     document.getElementById("saveReorderBtn").addEventListener("click", function () {
         const modal = document.getElementById("reorderModal");
         const playlistId = modal.dataset.playlistId;
@@ -247,33 +208,23 @@
         const items = Array.from(document.querySelectorAll("#reorderList li"));
 
         if (items.length === 0) {
-            alert("Nessuna traccia da salvare");
+            alert("No tracks to save");
             return;
         }
-
-        // Validazione: controlla che il numero di tracce sia rimasto lo stesso
         if (items.length !== originalCount) {
-            alert(`Errore: il numero di tracce è cambiato (originale: ${originalCount}, attuale: ${items.length})`);
+            alert(`Error: track number changed (original: ${originalCount}, actual: ${items.length})`);
             return;
         }
-
-        // Disabilita il pulsante durante il salvataggio
         const saveButton = document.getElementById("saveReorderBtn");
         const originalText = saveButton.textContent;
         saveButton.disabled = true;
-        saveButton.textContent = "Salvataggio...";
-
-        // Crea un form "fittizio" con gli input nascosti
+        saveButton.textContent = "Saving...";
         const tempForm = document.createElement("form");
-
-        // input per playlist_id
         const inputPlaylist = document.createElement("input");
         inputPlaylist.type = "hidden";
         inputPlaylist.name = "playlist_id";
         inputPlaylist.value = playlistId;
         tempForm.appendChild(inputPlaylist);
-
-        // input per ogni trackIds[]
         items.forEach(li => {
             const input = document.createElement("input");
             input.type = "hidden";
@@ -282,7 +233,6 @@
             tempForm.appendChild(input);
         });
 
-        // Chiamo makeCall passandogli il form
         makeCall("POST", URL_SAVE_ORDER, tempForm, function (req) {
             // Ripristina il pulsante
             saveButton.disabled = false;
@@ -291,12 +241,12 @@
             if (req.readyState !== XMLHttpRequest.DONE) return;
             if (req.status === 200) {
                 closeReorderModal();
-                alert("Ordinamento salvato con successo!");
+                alert("Order saved successfully!");
             } else if (req.status === 403) {
                 window.location.href = req.getResponseHeader("Location");
                 sessionStorage.removeItem("username");
             } else {
-                alert(req.responseText || "Errore durante il salvataggio");
+                alert(req.responseText || "Error in saving");
             }
         });
     });
@@ -319,7 +269,7 @@
                 <h2 id="detailTitle"></h2>
                 <div class="playlist-navigation">
                     <div class="nav-button prev-button">
-                        <button id="prevBtn">PRECEDENTI</button>
+                        <button id="prevBtn">PREVIOUS</button>
                     </div>
                     <div class="tracks-container">
                         <table id="detailTable">
@@ -327,14 +277,14 @@
                         </table>
                     </div>
                     <div class="nav-button next-button">
-                        <button id="nextBtn">SUCCESSIVI</button>
+                        <button id="nextBtn">NEXT</button>
                     </div>
                 </div>
                 <div class="add-tracks-form">
-                    <h3>Aggiungi tracce alla playlist</h3>
+                    <h3>Add tracks to playlist</h3>
                     <form id="addTracksForm">
                         <div class="checkbox-group" id="availableTracksGroup"></div>
-                        <button type="submit" id="addTracksBtn">Aggiungi tracce selezionate</button>
+                        <button type="submit" id="addTracksBtn">Add selected tracks</button>
                     </form>
                 </div>
             `;
@@ -344,8 +294,6 @@
                 .addEventListener("click", () => this.renderBlock(this.currentBlock - 1));
             this.container.querySelector("#nextBtn")
                 .addEventListener("click", () => this.renderBlock(this.currentBlock + 1));
-
-            // ora colleghiamo un unico handler
             this.addTracksForm.addEventListener('submit', this.handleAddTracks.bind(this));
         };
 
@@ -353,7 +301,6 @@
             this.currentPlaylistId = playlist_id;
             this.msg.textContent = "";
 
-            // Chiudi il player se aperto
             const playerContainer = document.getElementById('playerContainer');
             if (playerContainer) {
                 playerContainer.style.display = 'none';
@@ -370,7 +317,6 @@
                     this.container.querySelector("#detailTitle").textContent = resp.playlist.title;
                     this.renderBlock(0);
 
-                    // Carica tracce disponibili
                     makeCall("GET", "GetUserTracksData", null, req2 => {
                         if (req2.readyState === XMLHttpRequest.DONE && req2.status === 200) {
                             const allTracks = JSON.parse(req2.responseText);
@@ -434,7 +380,7 @@
             group.innerHTML = '';
 
             if (availableTracks.length === 0) {
-                group.innerHTML = '<div class="no-tracks">Nessuna traccia disponibile da aggiungere</div>';
+                group.innerHTML = '<div class="no-tracks">No tracks available to add</div>';
                 button.disabled = true;
                 return;
             }
@@ -453,7 +399,6 @@
                 `;
                 group.appendChild(div);
             });
-
             button.disabled = false;
         };
 
@@ -463,34 +408,30 @@
             const selected = form.querySelectorAll('input[name="trackIds[]"]:checked');
 
             if (selected.length === 0) {
-                alert("Seleziona almeno un brano da aggiungere");
+                alert("Select at least one track to add");
                 return;
             }
 
-            // Aggiungo nascosto playlist_id
             const playlistIdInput = document.createElement('input');
             playlistIdInput.type = 'hidden';
             playlistIdInput.name = 'playlist_id';
             playlistIdInput.value = this.currentPlaylistId;
             form.appendChild(playlistIdInput);
 
-            // PASSIAMO IL FORM, non FormData
             makeCall("POST", URL_ADD_TRACKS_TO_PLAYLIST, form, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
                     this.tracks = [];
                     this.currentBlock = 0;
                     this.load(this.currentPlaylistId);
-                    this.msg.textContent = "Tracce aggiunte con successo!";
+                    this.msg.textContent = "Tracks added successfully!";
                 } else if (req.status === 403) {
                     window.location.href = req.getResponseHeader("Location");
                     sessionStorage.removeItem("username");
                 } else {
-                    alert(req.responseText || "Errore sconosciuto");
+                    alert(req.responseText || "Unknown error");
                 }
             });
-
-            // Rimuovo l’input nascosto
             form.removeChild(playlistIdInput);
         };
 
@@ -500,15 +441,13 @@
     function PlayerView(containerElem, msgElem) {
         this.container = containerElem;
         this.msg = msgElem;
-
-        // Load track metadata and audio URL via AJAX
         this.load = (track_id) => {
             this.msg.textContent = "";
             makeCall("GET", `${URL_TRACK_DATA}?track_id=${track_id}`, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
                     const track = JSON.parse(req.responseText);
-                    // Build player UI
+
                     this.container.innerHTML = `
                     <div class="player-header">
                         <h2>${track.title}</h2>
@@ -528,16 +467,13 @@
                             <div class="audio-player">
                                 <audio controls>
                                     <source src="uploads/${track.file_path}" type="audio/mpeg"/>
-                                    Il tuo browser non supporta l'elemento audio.
+                                    Your browser does not support the audio element.
                                 </audio>
                             </div>
                         </div>
-                    </div>
-                `;
-                    // Mostra solo il player, senza nascondere la lista tracce
+                    </div> `;
                     this.container.style.display = 'block';
 
-                    // Close button: chiudi solo il player
                     this.container.querySelector('#closePlayer')
                         .addEventListener('click', () => {
                             this.container.style.display = 'none';
@@ -587,7 +523,6 @@
             playlists.forEach(pl => {
                 const tr = document.createElement("tr");
 
-                // Titolo (click apre detailView)
                 const tdTitle = document.createElement("td");
                 const a = document.createElement("a");
                 a.href = "#";
@@ -599,7 +534,6 @@
                 tdTitle.appendChild(a);
                 tr.appendChild(tdTitle);
 
-                // Data creazione
                 const tdDate = document.createElement("td");
                 tdDate.textContent = new Date(pl.time)
                     .toLocaleString("it-IT", {
@@ -607,8 +541,6 @@
                         hour: "2-digit", minute: "2-digit"
                     });
                 tr.appendChild(tdDate);
-
-                // Pulsante RIORDINO
                 const tdReorder = document.createElement("td");
                 const reorderBtn = document.createElement("button");
                 reorderBtn.textContent = "Riordino";
@@ -626,13 +558,13 @@
         this.form = formElem;
         this.form.querySelector('input[name="image"]').addEventListener("change", e => {
             if (e.target.files[0]?.size > 5 * 1024 * 1024) {
-                alert("La dimensione massima è 5MB");
+                alert("Maximum file size is 5MB");
                 e.target.value = "";
             }
         });
         this.reset = () => this.form.reset();
         this.show = () => {
-        }; // Nessuna operazione aggiuntiva
+        };
         this.registerEvents = orchestrator => {
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
@@ -640,12 +572,12 @@
                     if (req.readyState !== XMLHttpRequest.DONE) return;
                     if (req.status === 200) {
                         orchestrator.refresh();
-                        alert("Album creato con successo!");
+                        alert("Album created successfully!");
                     } else if (req.status === 403) {
                         window.location.href = req.getResponseHeader("Location");
                         sessionStorage.removeItem("username");
                     } else {
-                        alert(req.responseText || "Errore sconosciuto");
+                        alert(req.responseText || "Unknown error");
                     }
                 });
             }, false);
@@ -657,14 +589,13 @@
         this.msg = msgElem;
         this.form.querySelector('input[name="audioFile"]').addEventListener("change", e => {
             if (e.target.files[0]?.size > 10 * 1024 * 1024) {
-                alert("La dimensione massima è 10MB");
+                alert("Maximum file size is 10MB");
                 e.target.value = "";
             }
         });
         this.reset = () => this.form.reset();
 
         this.show = () => {
-            // Popola gli album
             makeCall("GET", URL_ALBUM_LIST, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 const selAlbum = document.getElementById("albumSelect");
@@ -675,7 +606,7 @@
                         const o = document.createElement("option");
                         o.disabled = true;
                         o.selected = true;
-                        o.textContent = "Nessun album disponibile";
+                        o.textContent = "No album available";
                         selAlbum.appendChild(o);
                     } else {
                         const placeholder = document.createElement("option");
@@ -689,7 +620,6 @@
                             o.textContent = `${a.title} (${a.publicationYear})`;
                             selAlbum.appendChild(o);
                         });
-                        // Chiudi il player se selezioni un altro album
                         selAlbum.addEventListener('change', () => {
                             const player = document.getElementById('playerContainer');
                             if (player) {
@@ -708,7 +638,6 @@
                 }
             });
 
-            // Popola i generi
             makeCall("GET", URL_GENRE_LIST, null, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 const selGenre = document.getElementById("genreSelect");
@@ -719,7 +648,7 @@
                         const o = document.createElement("option");
                         o.disabled = true;
                         o.selected = true;
-                        o.textContent = "Nessun genere disponibile";
+                        o.textContent = "No genre available";
                         selGenre.appendChild(o);
                     } else {
                         const placeholder = document.createElement("option");
@@ -800,7 +729,7 @@
             this.form.addEventListener("submit", e => {
                 e.preventDefault();
                 if (this.form.querySelectorAll('input[name="trackIds"]:checked').length === 0) {
-                    alert("Seleziona almeno un brano");
+                    alert("Select at least one track");
                     return;
                 }
                 makeCall("POST", URL_SAVE_PLAYLIST, this.form, req => {
