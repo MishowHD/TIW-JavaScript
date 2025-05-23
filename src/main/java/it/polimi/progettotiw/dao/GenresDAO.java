@@ -8,8 +8,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import it.polimi.progettotiw.beans.Genres;
+
 public class GenresDAO {
-    private final Connection con; //session between a Java application and a database
+    private final Connection con;
 
     public GenresDAO(Connection connection) {
         this.con = connection;
@@ -29,6 +30,7 @@ public class GenresDAO {
         }
         return genres;
     }
+
     public List<String> getGenresNames() throws SQLException {
         String query = "SELECT name FROM Genres";
         List<String> genres = new ArrayList<>();
@@ -41,7 +43,6 @@ public class GenresDAO {
         }
         return genres;
     }
-
 
 
 }

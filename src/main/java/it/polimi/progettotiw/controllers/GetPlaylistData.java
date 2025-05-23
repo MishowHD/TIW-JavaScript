@@ -31,14 +31,11 @@ public class GetPlaylistData extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // 1) Controllo sessione
         User user = (User) req.getSession().getAttribute("user");
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return;
         }
-
-        // 2) Parametri
         String pidParam = req.getParameter("playlist_id");
         if (pidParam == null) {
             resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing playlist_id");
@@ -47,19 +44,15 @@ public class GetPlaylistData extends HttpServlet {
         int playlistId = Integer.parseInt(pidParam);
 
         try {
-            // 3) Recupera playlist e tracce ordinate
             PlaylistDAO pdao = new PlaylistDAO(connection);
-            TrackDAO   tdao = new TrackDAO(connection);
+            TrackDAO tdao = new TrackDAO(connection);
 
             Playlist playlist = pdao.getPlaylistById(playlistId);
             List<Track> tracks = tdao.getTracksByPlaylistOrdered(playlistId);
-
-            // 4) Prepara mappa JSON
-            Map<String,Object> result = new HashMap<>();
+            Map<String, Object> result = new HashMap<>();
             result.put("playlist", playlist);
             result.put("tracks", tracks);
 
-            // 5) Serializza e rispondi
             String json = new Gson().toJson(result);
             resp.setContentType("application/json");
             resp.setCharacterEncoding("UTF-8");
@@ -71,7 +64,9 @@ public class GetPlaylistData extends HttpServlet {
 
     @Override
     public void destroy() {
-        try { ConnectionHandler.closeConnection(connection); }
-        catch (Exception ignore) {}
+        try {
+            ConnectionHandler.closeConnection(connection);
+        } catch (Exception ignore) {
+        }
     }
 }

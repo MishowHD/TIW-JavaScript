@@ -3,6 +3,7 @@ package it.polimi.progettotiw.controllers;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -26,7 +27,6 @@ public class AddTracksToPlaylist extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        // Assicuriamoci di leggere correttamente i parametri di form-data UTF-8
         request.setCharacterEncoding("UTF-8");
         response.setCharacterEncoding("UTF-8");
         response.setContentType("application/json");
@@ -36,7 +36,7 @@ public class AddTracksToPlaylist extends HttpServlet {
             playlistId = Integer.parseInt(request.getParameter("playlist_id"));
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"ID playlist non valido\"}");
+            response.getWriter().write("{\"error\":\"ID playlist not valid\"}");
             return;
         }
 
@@ -44,7 +44,7 @@ public class AddTracksToPlaylist extends HttpServlet {
         String[] trackIdsArray = request.getParameterValues("trackIds[]");
         if (trackIdsArray == null || trackIdsArray.length == 0) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Nessuna traccia selezionata\"}");
+            response.getWriter().write("{\"error\":\"No track selected\"}");
             return;
         }
 
@@ -57,15 +57,15 @@ public class AddTracksToPlaylist extends HttpServlet {
 
             // Rispondiamo con un JSON di conferma
             response.setStatus(HttpServletResponse.SC_OK);
-            response.getWriter().write("{\"message\":\"Tracce aggiunte con successo\"}");
+            response.getWriter().write("{\"message\":\"Tracks added successfully\"}");
 
         } catch (NumberFormatException e) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            response.getWriter().write("{\"error\":\"Formato ID traccia non valido\"}");
+            response.getWriter().write("{\"error\":\"TrackID format not valid\"}");
         } catch (SQLException e) {
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            response.getWriter().write("{\"error\":\"Errore server: impossibile aggiungere le tracce\"}");
+            response.getWriter().write("{\"error\":\"Server error: impossibile adding tracks\"}");
         }
     }
 

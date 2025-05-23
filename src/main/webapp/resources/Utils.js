@@ -1,24 +1,17 @@
-/* Generic function created to handle any request 
-		method = "GET" or "POST"
-		url = URL to send the request to
-		formElement = form to send in body (if apply, null otherwise)
-		cback = callback to invoke when status change to handle responses from server
-		reset = if we use formElement then if we reset it or not
-*/
-function makeCall(method, url, formElement, cback, reset = true){
+function makeCall(method, url, formElement, cback, reset = true) {
     const req = new XMLHttpRequest();
-    req.onreadystatechange = function(){
+    req.onreadystatechange = function () {
         cback(req)
     };
 
-    req.open (method, url);
+    req.open(method, url);
 
-    if(formElement == null){
+    if (formElement == null) {
         req.send();
-    }else{
+    } else {
         console.log("sending...")
         req.send(new FormData(formElement));
-        if(reset){
+        if (reset) {
             formElement.reset();
         }
     }

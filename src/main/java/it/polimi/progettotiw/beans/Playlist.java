@@ -2,7 +2,6 @@ package it.polimi.progettotiw.beans;
 
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
-// The creation_date retrieved from the database is a java.sql.Timestamp, but Thymeleaf's #temporals utilities work best with Java 8 Time API types (e.g., LocalDateTime). Update the Playlist bean and DAO to use LocalDateTime instead of Timestamp.
 public class Playlist {
     private int playlist_id;
     private String title;
@@ -33,7 +32,6 @@ public class Playlist {
         this.time = time;
     }
 
-    // Metodo di supporto per Thymeleaf
     public LocalDateTime getLocalDateTime() {
         return time != null ? time.toLocalDateTime() : null;
     }

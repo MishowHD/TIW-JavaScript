@@ -140,11 +140,11 @@
 
     function openReorderModal(playlistId) {
         const overlay = document.getElementById("modalOverlay");
-        const modal   = document.getElementById("reorderModal");
-        const list    = document.getElementById("reorderList");
+        const modal = document.getElementById("reorderModal");
+        const list = document.getElementById("reorderList");
         overlay.style.display = 'block';
-        modal.style.display   = 'block';
-        list.innerHTML        = '';
+        modal.style.display = 'block';
+        list.innerHTML = '';
         showLoadingIndicator();
         loadPlaylistTracks(playlistId);
     }
@@ -196,7 +196,8 @@
             item.classList.remove('dragging', 'drag-over', 'drag-above', 'drag-below');
         });
     }
-    document.addEventListener('keydown', function(e) {
+
+    document.addEventListener('keydown', function (e) {
         if (e.key === 'Escape' && document.getElementById("modalOverlay").style.display === 'block') {
             closeReorderModal();
         }

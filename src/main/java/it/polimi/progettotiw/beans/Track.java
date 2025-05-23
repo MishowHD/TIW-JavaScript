@@ -58,17 +58,18 @@ public class Track implements Serializable {
     public void setUsername(String username) {
         this.username = username;
     }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Track track = (Track) o;
-        return track_id == track.track_id; // Compare by track_id
+        return track_id == track.track_id;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(track_id); // Use track_id for hashing
+        return Objects.hash(track_id);
     }
 
 }

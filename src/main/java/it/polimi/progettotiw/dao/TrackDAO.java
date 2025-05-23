@@ -88,7 +88,6 @@ public class TrackDAO {
         return tracks;
     }
 
-    // Mappatura centralizzata con oggetto Album
     private Track mapTrackFromResultSet(ResultSet rs) throws SQLException {
         Track track = new Track();
         track.setTrack_id(rs.getInt("track_id"));
@@ -102,11 +101,12 @@ public class TrackDAO {
         album.setTitle(rs.getString("album_title"));
         album.setPerformer(rs.getString("performer"));
         album.setPublicationYear(rs.getInt("publication_year"));
-        album.setImage(rs.getString("image")); // Campo "image" dal database
+        album.setImage(rs.getString("image"));
         track.setAlbum(album);
 
         return track;
     }
+
     public boolean isOwnedBy(int trackId, String username) throws SQLException {
         String sql = "SELECT COUNT(*) AS cnt "
                 + "FROM Tracks "
@@ -121,5 +121,5 @@ public class TrackDAO {
                 return false;
             }
         }
-}
+    }
 }

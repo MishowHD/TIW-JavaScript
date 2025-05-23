@@ -23,7 +23,6 @@ public class SavePlaylistOrder extends HttpServlet {
 
     @Override
     public void init() throws ServletException {
-        // recupera qui la connection dal context (es. tramite ConnectionHandler)
         connection = ConnectionHandler.getConnection(getServletContext());
     }
 
@@ -33,7 +32,6 @@ public class SavePlaylistOrder extends HttpServlet {
         User user = (User) request.getSession().getAttribute("user");
         String username = user.getUsername();
 
-        // 2) Parsing parametri
         int playlistId;
         try {
             playlistId = Integer.parseInt(request.getParameter("playlist_id"));
@@ -51,17 +49,14 @@ public class SavePlaylistOrder extends HttpServlet {
 
         PlaylistDAO playlistDAO = new PlaylistDAO(connection);
         try {
-            // 3) Verifica ownership
             if (!playlistDAO.isOwnedBy(playlistId, username)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
                 return;
             }
-            // 4) Costruzione lista ordinata
             List<Integer> orderedTrackIds = new ArrayList<>();
             for (String s : trackIdsParam) {
                 orderedTrackIds.add(Integer.parseInt(s));
             }
-            // 5) Aggiornamento
             playlistDAO.updateTracksOrder(playlistId, orderedTrackIds);
             response.setStatus(HttpServletResponse.SC_OK);
 

@@ -35,8 +35,6 @@ public class SavePlaylist extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws IOException {
-
-        // L’utente è già autenticato d
         User user = (User) request.getSession().getAttribute("user");
 
         String title = request.getParameter("title");
@@ -74,6 +72,7 @@ public class SavePlaylist extends HttpServlet {
     public void destroy() {
         try {
             ConnectionHandler.closeConnection(connection);
-        } catch (SQLException ignore) {}
+        } catch (SQLException ignore) {
+        }
     }
 }

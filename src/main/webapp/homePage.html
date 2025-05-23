@@ -14,7 +14,6 @@
     <div class="logo-container">
         <img src="logo.png" alt="Polify Logo" class="logo-img">
     </div>
-    <!-- contenitore per messaggi di errore/info -->
 
     <h2>Your playlists are here!</h2>
     <p id="messageContainer"></p>
@@ -26,13 +25,10 @@
         </tr>
         </thead>
         <tbody id="playlistTableBody">
-        <!-- verrà popolato via JS -->
         </tbody>
     </table>
     <div id="playerContainer" style="margin-top:2em; display:none;"></div>
     <div id="playlistDetailContainer" style="margin-top:2em;"></div>
-
-    <!-- poi i form di album/track/playlist… -->
 
     <h2>Create a New Album</h2>
     <form id="albumForm" action="#" method="post" enctype="multipart/form-data">
@@ -69,7 +65,6 @@
         <div>
             <label for="albumSelect">Album:</label>
             <select id="albumSelect" name="albumId" required>
-                <!-- verrà popolato via JS -->
             </select>
         </div>
         <div>
@@ -80,7 +75,6 @@
         <div>
             <label for="genreSelect">Genre:</label>
             <select id="genreSelect" name="genreName" required>
-                <!-- verrà popolato via JS -->
             </select>
         </div>
         <div>
@@ -104,7 +98,6 @@
         <div>
             <label>Select Tracks:</label>
             <div class="checkbox-group" id="trackCheckboxGroup">
-                <!-- verrà popolato via JS -->
             </div>
         </div>
         <button type="submit">Create Playlist</button>

@@ -95,6 +95,7 @@ public class PlaylistDAO {
             ps.executeUpdate();
         }
     }
+
     public boolean isOwnedBy(int playlistId, String username) throws SQLException {
         String sql = "SELECT COUNT(*) AS cnt "
                 + "FROM Playlists "
@@ -109,13 +110,14 @@ public class PlaylistDAO {
                 return false;
             }
         }
-}
+    }
+
     public void updateTracksOrder(int playlistId, List<Integer> orderedTrackIds) throws SQLException {
         String sql = "UPDATE Playlist_Tracks SET position = ? WHERE playlist_id = ? AND track_id = ?";
         try (PreparedStatement ps = con.prepareStatement(sql)) {
             int maxPosition = orderedTrackIds.size();
-            for (int i = 0; i<orderedTrackIds.size(); i++) {
-                ps.setInt(1, maxPosition-i );
+            for (int i = 0; i < orderedTrackIds.size(); i++) {
+                ps.setInt(1, maxPosition - i);
                 ps.setInt(2, playlistId);
                 ps.setInt(3, orderedTrackIds.get(i));
                 ps.addBatch();

@@ -10,7 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class AlbumDAO {
-    private final Connection con; //session between a Java application and a database
+    private final Connection con;
 
     public AlbumDAO(Connection connection) {
         this.con = connection;

@@ -1,14 +1,13 @@
 package it.polimi.progettotiw.beans;
 
 public class Album {
-    private int albumId;  // Rinominato da idAlbum → albumId
+    private int albumId;
     private String title;
     private String performer;
-    private int publicationYear;  // Rinominato da publicationyear → publicationYear
+    private int publicationYear;
     private String image;
     private String username;
 
-    // Getter/Setter modificati
     public int getAlbumId() {
         return albumId;
     }
@@ -32,6 +31,7 @@ public class Album {
     public void setTitle(String title) {
         this.title = title;
     }
+
     public void setPerformer(String performer) {
         this.performer = performer;
     }

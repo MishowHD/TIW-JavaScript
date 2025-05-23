@@ -41,7 +41,7 @@ public class UploadTrack extends HttpServlet {
         connection = ConnectionHandler.getConnection(servletContext);
         uploadBase = servletContext.getInitParameter("UPLOAD_BASE");
         if (uploadBase == null) {
-            throw new ServletException("UPLOAD_BASE non configurato");
+            throw new ServletException("UPLOAD_BASE not configured in web.xml");
         }
     }
 
@@ -77,7 +77,7 @@ public class UploadTrack extends HttpServlet {
         Path basePath = Paths.get(uploadBase).toAbsolutePath().normalize();
         Path userAudioDir = basePath.resolve(user.getUsername()).resolve("audio").normalize();
         if (!userAudioDir.startsWith(basePath)) {
-            throw new IOException("Tentativo di path traversal");
+            throw new IOException("Path traversal attempt");
         }
         Files.createDirectories(userAudioDir);
 
@@ -91,7 +91,7 @@ public class UploadTrack extends HttpServlet {
         try {
             Files.copy(audioPart.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
-            log("Errore salvataggio file audio", e);
+            log("Error saving file audio", e);
             response.getWriter().println("Error when copying audio file");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
@@ -103,7 +103,7 @@ public class UploadTrack extends HttpServlet {
                     title, relativePath, albumId, genreName, user.getUsername()
             );
         } catch (SQLException e) {
-            log("Errore DB salvataggio traccia", e);
+            log("Error DB saving track", e);
             response.getWriter().println("Error when copying track");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;

@@ -30,7 +30,6 @@ public class GetUserPlaylistsData extends HttpServlet {
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp) throws IOException {
-        // 1) Session check
         User user = (User) req.getSession().getAttribute("user");
         if (user == null) {
             resp.setStatus(HttpServletResponse.SC_FORBIDDEN);
@@ -38,13 +37,9 @@ public class GetUserPlaylistsData extends HttpServlet {
         }
 
         try {
-            // 2) Fetch
             List<Playlist> playlists = new PlaylistDAO(connection)
                     .getPlaylistsOfUser(user.getUsername());
-            // 3) Serialize
             String json = new Gson().toJson(playlists);
-
-            // 4) Respond
             resp.setContentType("application/json");
             resp.setCharacterEncoding("UTF-8");
             resp.getWriter().write(json);
@@ -55,7 +50,9 @@ public class GetUserPlaylistsData extends HttpServlet {
 
     @Override
     public void destroy() {
-        try { ConnectionHandler.closeConnection(connection); }
-        catch (Exception ignore) {}
+        try {
+            ConnectionHandler.closeConnection(connection);
+        } catch (Exception ignore) {
+        }
     }
 }
