@@ -2,6 +2,7 @@ package it.polimi.progettotiw.filter;
 
 import it.polimi.progettotiw.ConnectionHandler;
 import it.polimi.progettotiw.beans.User;
+import it.polimi.progettotiw.dao.AlbumDAO;
 import it.polimi.progettotiw.dao.PlaylistDAO;
 import it.polimi.progettotiw.dao.TrackDAO;
 import jakarta.servlet.*;
@@ -12,6 +13,8 @@ import jakarta.servlet.http.HttpSession;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.stream.Stream;
 
 public class Checker implements Filter {
     private ServletContext ctx;
@@ -25,25 +28,26 @@ public class Checker implements Filter {
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
 
-        HttpServletRequest req = (HttpServletRequest) request;
+        HttpServletRequest  req = (HttpServletRequest) request;
         HttpServletResponse res = (HttpServletResponse) response;
-        String uri = req.getRequestURI();
+        String uri     = req.getRequestURI();
         String context = req.getContextPath();
         if (uri.startsWith(context + "/loginPage.html")) {
             HttpSession session = req.getSession(false);
             if (session != null) {
                 session.invalidate();
-            }
-            //rimuove cache
-            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            }res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             res.setHeader("Pragma", "no-cache");
             res.setDateHeader("Expires", 0);
             chain.doFilter(request, response);
             return;
-        } else if (uri.startsWith(context + "/CheckPassword") || uri.startsWith(context + "/CheckRegistration")) {
+        }
+        if (uri.startsWith(context + "/CheckPassword") ||
+                uri.startsWith(context + "/CheckRegistration")) {
             chain.doFilter(request, response);
             return;
         }
+
         HttpSession session = req.getSession(false);
         if (session == null || session.getAttribute("user") == null) {
             res.sendRedirect(context + "/loginPage.html");
@@ -58,60 +62,188 @@ public class Checker implements Filter {
         String currentUser = user.getUsername();
 
         try (Connection connection = ConnectionHandler.getConnection(ctx)) {
-            TrackDAO trackDAO = new TrackDAO(connection);
-            PlaylistDAO playlistDAO = new PlaylistDAO(connection); // Aggiunto
+            TrackDAO    trackDAO    = new TrackDAO(connection);
+            PlaylistDAO playlistDAO = new PlaylistDAO(connection);
+            AlbumDAO    albumDAO    = new AlbumDAO(connection);
             if (uri.startsWith(context + "/uploads/")) {
-                String[] pathParts = uri.substring(context.length()).split("/");
-                if (pathParts.length < 3 || !pathParts[2].equals(currentUser)) {
-                    res.sendError(403, "Denied access");
+                String[] parts = uri.substring(context.length()).split("/");
+                if (parts.length < 3 || !parts[2].equals(currentUser)) {
+                    res.sendError(HttpServletResponse.SC_FORBIDDEN, "Accesso negato");
                     return;
                 }
             }
             if (uri.startsWith(context + "/GetTrackData")) {
                 String idStr = req.getParameter("track_id");
                 if (idStr == null || idStr.isEmpty()) {
-                    res.sendError(400, "Missing track_id parameter");
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing track_id parameter");
+                    return;
+                }
+                int trackId;
+                try {
+                    trackId = Integer.parseInt(idStr);
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "track_id format not valid");
                     return;
                 }
                 try {
-                    int trackId = Integer.parseInt(idStr);
                     if (!trackDAO.isOwnedBy(trackId, currentUser)) {
-                        res.sendError(403);
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN);
                         return;
                     }
-                } catch (NumberFormatException e) {
-                    res.sendError(400, "track_id format not valid");
-                    return;
                 } catch (SQLException e) {
-                    res.sendError(500);
+                    res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
                     return;
                 }
             }
             if (uri.startsWith(context + "/GetPlaylistData")) {
                 String idStr = req.getParameter("playlist_id");
                 if (idStr == null || idStr.isEmpty()) {
-                    res.sendError(400, "Missing playlist_id parameter");
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing playlist_id parameter");
                     return;
                 }
-
+                int playlistId;
                 try {
-                    int playlistId = Integer.parseInt(idStr);
+                    playlistId = Integer.parseInt(idStr);
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "playlist_id format not valid");
+                    return;
+                }
+                try {
                     if (!playlistDAO.isOwnedBy(playlistId, currentUser)) {
-                        res.sendError(403);
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN);
                         return;
                     }
-                } catch (NumberFormatException e) {
-                    res.sendError(400, "playlist_id format not valid");
-                    return;
                 } catch (SQLException e) {
-                    res.sendError(500);
+                    res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
                     return;
                 }
             }
-
+            if (uri.startsWith(context + "/AddTracksToPlaylist")) {
+                String idStr = req.getParameter("playlist_id");
+                if (idStr == null || idStr.isEmpty()) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing playlist_id parameter");
+                    return;
+                }
+                int playlistId;
+                try {
+                    playlistId = Integer.parseInt(idStr);
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "playlist_id format not valid");
+                    return;
+                }
+                try {
+                    if (!playlistDAO.isOwnedBy(playlistId, currentUser)) {
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi questa playlist");
+                        return;
+                    }
+                } catch (SQLException e) {
+                    res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                    return;
+                }
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/SavePlaylist")) {
+                String[] trackIdsParam = req.getParameterValues("trackIds");
+                if (trackIdsParam != null) {
+                    List<Integer> trackIds;
+                    try {
+                        trackIds = Stream.of(trackIdsParam)
+                                .map(Integer::parseInt)
+                                .toList();
+                    } catch (NumberFormatException e) {
+                        res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Uno o più trackIds non validi");
+                        return;
+                    }
+                    for (Integer tId : trackIds) {
+                        try {
+                            if (!trackDAO.isOwnedBy(tId, currentUser)) {
+                                res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi la traccia " + tId);
+                                return;
+                            }
+                        } catch (SQLException e) {
+                            res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                            return;
+                        }
+                    }
+                }
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/SavePlaylistOrder")) {
+                String idStr = req.getParameter("playlist_id");
+                if (idStr == null || idStr.isEmpty()) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing playlist_id parameter");
+                    return;
+                }
+                int playlistId;
+                try {
+                    playlistId = Integer.parseInt(idStr);
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "playlist_id format not valid");
+                    return;
+                }
+                try {
+                    if (!playlistDAO.isOwnedBy(playlistId, currentUser)) {
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi questa playlist");
+                        return;
+                    }
+                } catch (SQLException e) {
+                    res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                    return;
+                }
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/UploadTrack")) {
+                String albumIdStr = req.getParameter("albumId");
+                if (albumIdStr == null || albumIdStr.isEmpty()) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Missing albumId parameter");
+                    return;
+                }
+                int albumId;
+                try {
+                    albumId = Integer.parseInt(albumIdStr);
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "albumId format not valid");
+                    return;
+                }
+                try {
+                    if (!albumDAO.isOwnedBy(albumId, currentUser)) {
+                        res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi questo album");
+                        return;
+                    }
+                } catch (SQLException e) {
+                    res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                    return;
+                }
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/GetUserTracksData")) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/GetUserPlaylistsData")) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/GetAlbumData")) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/GetGenresData")) {
+                chain.doFilter(request, response);
+                return;
+            }
+            if (uri.startsWith(context + "/SaveAlbum")) {
+                chain.doFilter(request, response);
+                return;
+            }
             chain.doFilter(request, response);
+
         } catch (SQLException e) {
-            res.sendError(500, "Database error");
+            res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
         }
     }
 

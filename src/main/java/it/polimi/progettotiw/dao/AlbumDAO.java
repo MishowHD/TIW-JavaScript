@@ -48,4 +48,19 @@ public class AlbumDAO {
         return albums;
     }
 
+    public boolean isOwnedBy(int albumId, String currentUser) throws SQLException {
+        String sql = "SELECT COUNT(*) AS cnt "
+                + "FROM Albums "
+                + "WHERE album_id = ? AND username = ?";
+        try (PreparedStatement ps = con.prepareStatement(sql)) {
+            ps.setInt(1, albumId);
+            ps.setString(2, currentUser);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("cnt") > 0;
+                }
+                return false;
+            }
+        }
+    }
 }
