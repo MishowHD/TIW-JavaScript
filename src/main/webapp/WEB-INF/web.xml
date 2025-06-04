@@ -29,7 +29,6 @@
         <exception-type>java.lang.IllegalStateException</exception-type>
         <location>/ErrorHandler</location>
     </error-page>
-    <!-- Error‐page 500 generico -->
     <error-page>
         <error-code>500</error-code>
         <location>/ErrorHandler</location>
@@ -46,24 +45,27 @@
         <exception-type>java.lang.Throwable</exception-type>
         <location>/ErrorHandler</location>
     </error-page>
-    <!-- Filtro Checker -->
     <filter>
         <filter-name>Checker</filter-name>
         <filter-class>it.polimi.progettotiw.filter.Checker</filter-class>
     </filter>
     <filter-mapping>
         <filter-name>Checker</filter-name>
+        <url-pattern>/loginPage.html</url-pattern>
+        <url-pattern>/CheckPassword</url-pattern>
+        <url-pattern>/CheckRegistration</url-pattern>
         <url-pattern>/homePage.html</url-pattern>
         <url-pattern>/GetAlbumData</url-pattern>
         <url-pattern>/GetGenresData</url-pattern>
         <url-pattern>/GetPlaylistData</url-pattern>
         <url-pattern>/GetTrackData</url-pattern>
-        <url-pattern>/GetUserPlaylistData</url-pattern>
+        <url-pattern>/GetUserPlaylistsData</url-pattern>
         <url-pattern>/GetUserTracksData</url-pattern>
         <url-pattern>/SaveAlbum</url-pattern>
         <url-pattern>/UploadTrack</url-pattern>
         <url-pattern>/SavePlaylist</url-pattern>
-        <url-pattern>/AddTrackToPlaylist</url-pattern>
+        <url-pattern>/AddTracksToPlaylist</url-pattern>
+        <url-pattern>/SavePlaylistOrder</url-pattern>
         <url-pattern>/uploads/*</url-pattern>
     </filter-mapping>
     <welcome-file-list>

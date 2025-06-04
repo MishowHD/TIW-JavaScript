@@ -36,14 +36,15 @@ public class Checker implements Filter {
             HttpSession session = req.getSession(false);
             if (session != null) {
                 session.invalidate();
-            }res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+            }
+            res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
             res.setHeader("Pragma", "no-cache");
             res.setDateHeader("Expires", 0);
             chain.doFilter(request, response);
             return;
         }
-        if (uri.startsWith(context + "/CheckPassword") ||
-                uri.startsWith(context + "/CheckRegistration")) {
+        if (uri.startsWith(context + "/CheckPassword")
+                || uri.startsWith(context + "/CheckRegistration")) {
             chain.doFilter(request, response);
             return;
         }
@@ -140,6 +141,31 @@ public class Checker implements Filter {
                     res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
                     return;
                 }
+                String[] trackIdsParam = req.getParameterValues("trackIds[]");
+                if (trackIdsParam == null || trackIdsParam.length == 0) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "No track selected");
+                    return;
+                }
+                List<Integer> trackIds;
+                try {
+                    trackIds = Stream.of(trackIdsParam)
+                            .map(Integer::parseInt)
+                            .toList();
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Uno o più trackIds non validi");
+                    return;
+                }
+                for (Integer tId : trackIds) {
+                    try {
+                        if (!trackDAO.isOwnedBy(tId, currentUser)) {
+                            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi la traccia " + tId);
+                            return;
+                        }
+                    } catch (SQLException e) {
+                        res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                        return;
+                    }
+                }
                 chain.doFilter(request, response);
                 return;
             }
@@ -191,6 +217,31 @@ public class Checker implements Filter {
                 } catch (SQLException e) {
                     res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
                     return;
+                }
+                String[] trackIdsParam = req.getParameterValues("trackIds[]");
+                if (trackIdsParam == null || trackIdsParam.length == 0) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Nessun trackId passato per il riordino");
+                    return;
+                }
+                List<Integer> trackIds;
+                try {
+                    trackIds = Stream.of(trackIdsParam)
+                            .map(Integer::parseInt)
+                            .toList();
+                } catch (NumberFormatException e) {
+                    res.sendError(HttpServletResponse.SC_BAD_REQUEST, "Uno o più trackIds non validi");
+                    return;
+                }
+                for (Integer tId : trackIds) {
+                    try {
+                        if (!trackDAO.isOwnedBy(tId, currentUser)) {
+                            res.sendError(HttpServletResponse.SC_FORBIDDEN, "Non possiedi la traccia " + tId);
+                            return;
+                        }
+                    } catch (SQLException e) {
+                        res.sendError(HttpServletResponse.SC_INTERNAL_SERVER_ERROR, "Database error");
+                        return;
+                    }
                 }
                 chain.doFilter(request, response);
                 return;
