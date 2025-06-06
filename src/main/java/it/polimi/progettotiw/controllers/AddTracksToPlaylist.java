@@ -39,8 +39,6 @@ public class AddTracksToPlaylist extends HttpServlet {
             response.getWriter().write("{\"error\":\"ID playlist not valid\"}");
             return;
         }
-
-        // Legge i checkbox con nome "trackIds[]"
         String[] trackIdsArray = request.getParameterValues("trackIds[]");
         if (trackIdsArray == null || trackIdsArray.length == 0) {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -49,20 +47,47 @@ public class AddTracksToPlaylist extends HttpServlet {
         }
 
         try {
+            connection.setAutoCommit(false);
+
             PlaylistDAO playlistDAO = new PlaylistDAO(connection);
             for (String trackIdStr : trackIdsArray) {
                 int trackId = Integer.parseInt(trackIdStr);
                 playlistDAO.addTrackToPlaylist(playlistId, trackId);
             }
 
-            // Rispondiamo con un JSON di conferma
+            connection.commit();
+            connection.setAutoCommit(true);
+
             response.setStatus(HttpServletResponse.SC_OK);
             response.getWriter().write("{\"message\":\"Tracks added successfully\"}");
 
         } catch (NumberFormatException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                log("Rollback fallito in AddTracksToPlaylist", ex);
+            }
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException acEx) {
+                log("Impossibile ripristinare autoCommit in AddTracksToPlaylist", acEx);
+            }
+
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             response.getWriter().write("{\"error\":\"TrackID format not valid\"}");
+
         } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                log("Rollback fallito in AddTracksToPlaylist", ex);
+            }
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException acEx) {
+                log("Impossibile ripristinare autoCommit in AddTracksToPlaylist", acEx);
+            }
+
             e.printStackTrace();
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             response.getWriter().write("{\"error\":\"Server error: impossibile adding tracks\"}");

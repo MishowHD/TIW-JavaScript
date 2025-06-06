@@ -29,7 +29,6 @@ public class SavePlaylist extends HttpServlet {
     @Override
     public void init() throws ServletException {
         ServletContext ctx = getServletContext();
-
         connection = ConnectionHandler.getConnection(ctx);
     }
 
@@ -53,16 +52,29 @@ public class SavePlaylist extends HttpServlet {
                 .collect(Collectors.toList());
 
         try {
+            connection.setAutoCommit(false);
+
             new PlaylistDAO(connection)
                     .createPlaylistWithTracks(title, user.getUsername(), trackIds);
+
+            connection.commit();
         } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException rbEx) {
+                log("Rollback fallito in SavePlaylist", rbEx);
+            }
             e.printStackTrace();
             response.getWriter().println("Server Error");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
             return;
+        } finally {
+            try {
+                connection.setAutoCommit(true);
+            } catch (SQLException acEx) {
+                log("Impossibile ripristinare autoCommit in SavePlaylist", acEx);
+            }
         }
-
-        // 6) redirect a GoToHome
         response.setStatus(HttpServletResponse.SC_OK);
         response.setContentType("application/json");
         response.setCharacterEncoding("UTF-8");

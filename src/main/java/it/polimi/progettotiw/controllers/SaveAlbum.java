@@ -30,8 +30,8 @@ import java.util.UUID;
 @WebServlet("/SaveAlbum")
 @MultipartConfig(
         fileSizeThreshold = 1024 * 1024,      // 1MB prima di scrivere su disco
-        maxFileSize = 5 * 1024 * 1024,  // 5MB per file
-        maxRequestSize = 10 * 1024 * 1024  // 10MB totale
+        maxFileSize = 5 * 1024 * 1024,        // 5MB per file
+        maxRequestSize = 10 * 1024 * 1024      // 10MB totale
 )
 public class SaveAlbum extends HttpServlet {
     private static final long serialVersionUID = 1L;
@@ -104,6 +104,8 @@ public class SaveAlbum extends HttpServlet {
             }
             String relativePath = user.getUsername() + "/images/" + storedName;
             try {
+                connection.setAutoCommit(false);
+
                 new AlbumDAO(connection).create(
                         title,
                         performer,
@@ -111,11 +113,29 @@ public class SaveAlbum extends HttpServlet {
                         relativePath,
                         user.getUsername()
                 );
+
+                connection.commit();
             } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rbEx) {
+                    log("Rollback fallito in SaveAlbum", rbEx);
+                }
                 log("Error DB in saving album", e);
+                try {
+                    Files.deleteIfExists(dest);
+                } catch (IOException delEx) {
+                    log("Non è stato possibile rimuovere l'immagine dopo rollback", delEx);
+                }
                 response.getWriter().println("Error uploading album");
                 response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
                 return;
+            } finally {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException acEx) {
+                    log("Impossibile ripristinare autoCommit in SaveAlbum", acEx);
+                }
             }
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentType("application/json");

@@ -49,75 +49,92 @@ public class UploadTrack extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         try {
-        User user = (User) request.getSession().getAttribute("user");
+            User user = (User) request.getSession().getAttribute("user");
 
-        String albumIdStr = request.getParameter("albumId");
-        String title      = request.getParameter("title");
-        String genreName  = request.getParameter("genreName");
-        Part audioPart    = request.getPart("audioFile");
+            String albumIdStr = request.getParameter("albumId");
+            String title      = request.getParameter("title");
+            String genreName  = request.getParameter("genreName");
+            Part audioPart    = request.getPart("audioFile");
 
-        if (albumIdStr == null || albumIdStr.isEmpty() ||
-                title == null || title.isEmpty() ||
-                genreName == null || genreName.isEmpty() ||
-                audioPart == null || audioPart.getSize() == 0) {
-            response.getWriter().println("Missing Parameters");
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+            if (albumIdStr == null || albumIdStr.isEmpty() ||
+                    title == null || title.isEmpty() ||
+                    genreName == null || genreName.isEmpty() ||
+                    audioPart == null || audioPart.getSize() == 0) {
+                response.getWriter().println("Missing Parameters");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
 
-        int albumId;
-        try {
-            albumId = Integer.parseInt(albumIdStr);
-        } catch (NumberFormatException e) {
-            response.getWriter().println("Album ID not valid");
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return;
-        }
+            int albumId;
+            try {
+                albumId = Integer.parseInt(albumIdStr);
+            } catch (NumberFormatException e) {
+                response.getWriter().println("Album ID not valid");
+                response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+                return;
+            }
 
-        Path basePath = Paths.get(uploadBase).toAbsolutePath().normalize();
-        Path userAudioDir = basePath.resolve(user.getUsername()).resolve("audio").normalize();
-        if (!userAudioDir.startsWith(basePath)) {
-            throw new IOException("Path traversal attempt");
-        }
-        Files.createDirectories(userAudioDir);
+            Path basePath = Paths.get(uploadBase).toAbsolutePath().normalize();
+            Path userAudioDir = basePath.resolve(user.getUsername()).resolve("audio").normalize();
+            if (!userAudioDir.startsWith(basePath)) {
+                throw new IOException("Path traversal attempt");
+            }
+            Files.createDirectories(userAudioDir);
 
-        String originalName = audioPart.getSubmittedFileName();
-        String ext = originalName != null && originalName.contains(".")
-                ? originalName.substring(originalName.lastIndexOf('.'))
-                : "";
-        String storedName = UUID.randomUUID() + ext;
-        Path dest = userAudioDir.resolve(storedName);
+            String originalName = audioPart.getSubmittedFileName();
+            String ext = originalName != null && originalName.contains(".")
+                    ? originalName.substring(originalName.lastIndexOf('.'))
+                    : "";
+            String storedName = UUID.randomUUID() + ext;
+            Path dest = userAudioDir.resolve(storedName);
 
-        try {
-            Files.copy(audioPart.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
-            log("Error saving file audio", e);
-            response.getWriter().println("Error when copying audio file");
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            return;
-        }
+            try {
+                Files.copy(audioPart.getInputStream(), dest, StandardCopyOption.REPLACE_EXISTING);
+            } catch (IOException e) {
+                log("Error saving file audio", e);
+                response.getWriter().println("Error when copying audio file");
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            }
 
-        String relativePath = user.getUsername() + "/audio/" + storedName;
-        try {
-            new TrackDAO(connection).create(
-                    title, relativePath, albumId, genreName, user.getUsername()
-            );
-        } catch (SQLException e) {
-            log("Error DB saving track", e);
-            response.getWriter().println("Error when copying track");
-            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
-            return;
-        }
+            String relativePath = user.getUsername() + "/audio/" + storedName;
+            try {
+                connection.setAutoCommit(false);
 
+                new TrackDAO(connection).create(
+                        title, relativePath, albumId, genreName, user.getUsername()
+                );
+
+                connection.commit();
+            } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rbEx) {
+                    log("Rollback fallito in UploadTrack", rbEx);
+                }
+                log("Error DB saving track", e);
+                try {
+                    Files.deleteIfExists(dest);
+                } catch (IOException delEx) {
+                    log("Non è stato possibile rimuovere l'audio dopo rollback", delEx);
+                }
+                response.getWriter().println("Error when copying track");
+                response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+                return;
+            } finally {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException acEx) {
+                    log("Impossibile ripristinare autoCommit in UploadTrack", acEx);
+                }
+            }
             response.setStatus(HttpServletResponse.SC_OK);
             response.setContentType("application/json");
             response.setCharacterEncoding("UTF-8");
-    } catch (IllegalStateException e) {
-            // file troppo grande da Servlet container
+        } catch (IllegalStateException e) {
             request.setAttribute("jakarta.servlet.error.exception", e);
             request.getRequestDispatcher("/ErrorHandler").forward(request, response);
         } catch (Exception e) {
-            // altri errori generici
             e.printStackTrace();
             response.getWriter().println("Error when copying track");
             response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);

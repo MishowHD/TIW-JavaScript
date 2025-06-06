@@ -57,7 +57,25 @@ public class SavePlaylistOrder extends HttpServlet {
             for (String s : trackIdsParam) {
                 orderedTrackIds.add(Integer.parseInt(s));
             }
-            playlistDAO.updateTracksOrder(playlistId, orderedTrackIds);
+            try {
+                connection.setAutoCommit(false);
+                playlistDAO.updateTracksOrder(playlistId, orderedTrackIds);
+                connection.commit();
+            } catch (SQLException e) {
+                try {
+                    connection.rollback();
+                } catch (SQLException rbEx) {
+                    log("Rollback fallito in SavePlaylistOrder", rbEx);
+                }
+                throw e;
+            } finally {
+                try {
+                    connection.setAutoCommit(true);
+                } catch (SQLException acEx) {
+                    log("Impossibile ripristinare autoCommit in SavePlaylistOrder", acEx);
+                }
+            }
+
             response.setStatus(HttpServletResponse.SC_OK);
 
         } catch (SQLException e) {
