@@ -105,7 +105,6 @@ public class SaveAlbum extends HttpServlet {
             String relativePath = user.getUsername() + "/images/" + storedName;
             try {
                 connection.setAutoCommit(false);
-
                 new AlbumDAO(connection).create(
                         title,
                         performer,

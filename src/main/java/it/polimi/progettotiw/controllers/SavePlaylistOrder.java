@@ -51,6 +51,7 @@ public class SavePlaylistOrder extends HttpServlet {
         try {
             if (!playlistDAO.isOwnedBy(playlistId, username)) {
                 response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+                connection.rollback();
                 return;
             }
             List<Integer> orderedTrackIds = new ArrayList<>();

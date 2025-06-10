@@ -55,7 +55,10 @@ public class AddTracksToPlaylist extends HttpServlet {
             TrackDAO trackDAO = new TrackDAO(connection);
             for (String trackIdStr : trackIdsArray) {
                 int trackId = Integer.parseInt(trackIdStr);
-                trackDAO.isOwnedBy(trackId, request.getRemoteUser());
+                if (!trackDAO.isOwnedBy(trackId, request.getRemoteUser())){
+                    connection.rollback();
+                    return;
+                }
             }
             for (String trackIdStr : trackIdsArray) {
                 int trackId = Integer.parseInt(trackIdStr);

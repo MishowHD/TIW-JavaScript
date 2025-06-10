@@ -101,7 +101,10 @@ public class UploadTrack extends HttpServlet {
             String relativePath = user.getUsername() + "/audio/" + storedName;
             try {
                 connection.setAutoCommit(false);
-                new AlbumDAO(connection).isOwnedBy(albumId, user.getUsername());
+                if (!new AlbumDAO(connection).isOwnedBy(albumId, user.getUsername())){
+                    connection.rollback();
+                    return;
+                }
                 new TrackDAO(connection).create(
                         title, relativePath, albumId, genreName, user.getUsername()
                 );
