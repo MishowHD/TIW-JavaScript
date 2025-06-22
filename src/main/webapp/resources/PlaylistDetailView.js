@@ -25,6 +25,7 @@ function PlaylistDetailView(containerElem, msgElem, playerView) {
                     <button type="submit" id="addTracksBtn">Add selected tracks</button>
                 </form>
             </div>`;
+        this.container.style.display = 'none';
         this.addTracksForm = this.container.querySelector('#addTracksForm');
         this.container.querySelector("#prevBtn")
             .addEventListener("click", () => this.renderBlock(this.currentBlock - 1));
