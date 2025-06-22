@@ -178,5 +178,28 @@
         <a class="logout" href="Logout">Logout</a>
     </p>
 </div>
+
+<div id="modalOverlay" class="modal-overlay is-hidden"></div>
+
+<div id="reorderModal"
+     class="modal-dialog is-hidden"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="reorderModalTitle">
+
+    <h2 id="reorderModalTitle">Reorder playlist</h2>
+
+    <div id="loadingIndicator" class="loading-indicator is-hidden">
+        Loading in progress, please wait...
+    </div>
+
+    <ul id="reorderList" class="reorder-list"></ul>
+
+    <div class="modal-actions">
+        <button id="cancelReorderBtn" class="btn-secondary">Cancel</button>
+        <button id="saveReorderBtn"   class="btn-primary">Save order</button>
+    </div>
+</div>
+
 </body>
 </html>
