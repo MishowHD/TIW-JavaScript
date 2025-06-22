@@ -56,8 +56,6 @@ function TrackUploader(formElem, msgElem) {
                                     audio.src = "";
                                 }
                             }
-                            const detail = document.getElementById("playlistDetailContainer");
-                            if (detail) detail.hidden = false;
                         });
                         selAlbum.dataset.listenerAdded = "true";
                     }
