@@ -155,22 +155,29 @@ function PlaylistDetailView(containerElem, msgElem, playerView) {
             alert('Select at least one track to add');
             return;
         }
-
-        const idField = document.createElement('input');
-        idField.type = 'hidden';
-        idField.name = 'playlist_id';
-        idField.value = this.currentPlaylistId;
-        addForm.appendChild(idField);
-
-        makeCall('POST', 'AddTracksToPlaylist', addForm, req => {
+        const tempForm = document.createElement('form');
+        const playlistInput = document.createElement('input');
+        playlistInput.type = 'hidden';
+        playlistInput.name = 'playlist_id';
+        playlistInput.value = this.currentPlaylistId;
+        tempForm.appendChild(playlistInput);
+        selected.forEach(checkbox => {
+            const trackInput = document.createElement('input');
+            trackInput.type = 'hidden';
+            trackInput.name = 'trackIds[]';
+            trackInput.value = checkbox.value;
+            tempForm.appendChild(trackInput);
+        });
+        makeCall('POST', 'AddTracksToPlaylist', tempForm, req => {
             if (req.readyState !== XMLHttpRequest.DONE) return;
             if (req.status === 200) {
-                this.load(this.currentPlaylistId);                   // ricarica
+                this.load(this.currentPlaylistId);
                 this.msg.textContent = 'Tracks added successfully!';
-            } else redirectToErrorPage(req);
+                selected.forEach(checkbox => checkbox.checked = false);
+            } else {
+                redirectToErrorPage(req);
+            }
         });
-
-        addForm.removeChild(idField);
     };
     this.refreshAvailableTracks = () => {
         makeCall('GET', 'GetUserTracksData', null, req => {
