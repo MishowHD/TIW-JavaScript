@@ -1,8 +1,8 @@
 function HomePageManager(pt, pd, ac, tu, pc) {
-    this.playlistTable  = pt; // tabella con l’elenco delle playlist dell’utente
+    this.playlistTable = pt; // tabella con l’elenco delle playlist dell’utente
     this.playlistDetail = pd; // vista di dettaglio di una singola playlist
-    this.albumCreator   = ac; // form per inserire un nuovo album
-    this.trackUploader  = tu;  // form per caricare un brano
+    this.albumCreator = ac; // form per inserire un nuovo album
+    this.trackUploader = tu;  // form per caricare un brano
     this.playlistCreator = pc; // form per creare una playlist selezionando i propri brani
 }
 
@@ -12,6 +12,15 @@ HomePageManager.prototype.start = function () {
     this.albumCreator.registerEvents(this);
     this.trackUploader.registerEvents(this);
     this.playlistCreator.registerEvents(this);
+    document.addEventListener("playlistOrderSaved", e => {
+        this.refresh("playlists");
+
+        if (!this.playlistDetail.container.hidden &&
+            this.playlistDetail.currentPlaylistId === e.detail.playlistId) {
+            this.playlistDetail.load(e.detail.playlistId);
+        }
+    });
+
 
     // mostro subito le playlist disponibili
     this.playlistTable.show();
@@ -38,10 +47,14 @@ HomePageManager.prototype.refresh = function (what) {
             return;
     }
     document.getElementById("messageContainer").textContent = "";
-    this.playlistTable.reset(); this.playlistTable.show();
-    this.albumCreator.reset();  this.albumCreator.show();
-    this.trackUploader.reset(); this.trackUploader.show();
-    this.playlistCreator.reset(); this.playlistCreator.show();
+    this.playlistTable.reset();
+    this.playlistTable.show();
+    this.albumCreator.reset();
+    this.albumCreator.show();
+    this.trackUploader.reset();
+    this.trackUploader.show();
+    this.playlistCreator.reset();
+    this.playlistCreator.show();
     this.playlistDetail.container.hidden = true;
 };
 
@@ -97,6 +110,8 @@ window.addEventListener("load", function () {
         trackUploader,
         playlistCreator
     );
+
+    window.appManager = manager;
 
     // avvio l’app e faccio subito un refresh completo
     manager.start();

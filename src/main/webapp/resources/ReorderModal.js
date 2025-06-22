@@ -173,8 +173,11 @@
             btnSave.textContent = oldText;
 
             if (req.readyState !== XMLHttpRequest.DONE) return;
+            if (req.status === 200) {
+                document.dispatchEvent(new CustomEvent("playlistOrderSaved", {
+                    detail: { playlistId: +modal.dataset.playlistId }
+                }));
 
-            if (req.status === 200){
                 closeReorderModal();
                 alert("Order saved successfully!");
             } else {
