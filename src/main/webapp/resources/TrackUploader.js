@@ -105,6 +105,7 @@ function TrackUploader(formElem, msgElem) {
 
                 if (req.status === 200) {
                     orchestrator.refresh("tracks");
+                    document.dispatchEvent(new CustomEvent('userTracksChanged'));
                     alert("Track uploaded!");
                 } else redirectToErrorPage(req);
             });

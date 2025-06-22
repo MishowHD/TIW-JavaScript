@@ -31,6 +31,13 @@ function PlaylistDetailView(containerElem, msgElem, playerView) {
                 containerElem.hidden = true;
                 this.msg.textContent = '';
             });
+        document.addEventListener('userTracksChanged', () => {
+            // aggiorna solo se la vista è aperta
+            if (!containerElem.hidden) {
+                this.refreshAvailableTracks();
+            }
+        });
+
     };
 
     this.load = playlistId => {
@@ -165,6 +172,20 @@ function PlaylistDetailView(containerElem, msgElem, playerView) {
 
         addForm.removeChild(idField);
     };
+    this.refreshAvailableTracks = () => {
+        makeCall('GET', 'GetUserTracksData', null, req => {
+            if (req.readyState !== XMLHttpRequest.DONE) return;
+
+            if (req.status === 200) {
+                const allTracks = JSON.parse(req.responseText);
+                const available = allTracks.filter(t =>
+                    !this.tracks.some(pt => pt.track_id === t.track_id)
+                );
+                this.renderAvailableTracks(available);
+            }
+        });
+    };
+
 }
 
 document.addEventListener('DOMContentLoaded', () => {
