@@ -138,6 +138,7 @@
         showLoadingIndicator();
         loadPlaylistTracks(playlistId);
     }
+    window.openReorderModal = openReorderModal;
 
     function loadPlaylistTracks(playlistId) {
         const list = document.getElementById("reorderList");
