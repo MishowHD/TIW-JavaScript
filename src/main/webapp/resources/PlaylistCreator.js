@@ -42,7 +42,11 @@ function PlaylistCreator(formElem) {
             }
             makeCall("POST", "SavePlaylist", this.form, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
-                if (req.status === 200) orchestrator.refresh();
+                if (req.status === 200) {
+                    orchestrator.refresh("playlists");
+                    alert("Playlist created!");
+
+                }
                 else redirectToErrorPage(req);
             });
         }, false);

@@ -15,7 +15,7 @@ function AlbumCreator(formElem) {
             makeCall("POST", "SaveAlbum", this.form, req => {
                 if (req.readyState !== XMLHttpRequest.DONE) return;
                 if (req.status === 200) {
-                    orchestrator.refresh();
+                    orchestrator.refresh("albums");
                     alert("Album created successfully!");
                 } else redirectToErrorPage(req);
             });
