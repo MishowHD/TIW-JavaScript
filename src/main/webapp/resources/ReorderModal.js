@@ -91,33 +91,6 @@
         }
         return false;
     }
-
-    const dragDropStyles = document.createElement('style');
-    dragDropStyles.textContent = `
-        #reorderList li {
-            padding: 0.5em;
-            border: 1px solid #ccc;
-            margin-bottom: 0.2em;
-            cursor: move;
-            background: white;
-            transition: transform 0.1s, box-shadow 0.1s;
-        }
-        #reorderList li.dragging {
-            opacity: 0.5;
-            transform: scale(0.98);
-        }
-        #reorderList li.drag-over {
-            border-color: #666;
-        }
-        #reorderList li.drag-above {
-            border-top: 2px solid #0066cc;
-        }
-        #reorderList li.drag-below {
-            border-bottom: 2px solid #0066cc;
-        }
-    `;
-    document.head.appendChild(dragDropStyles);
-
     function showLoadingIndicator() {
         document.getElementById("loadingIndicator").style.display = 'block';
         document.getElementById("reorderList").style.display = 'none';
