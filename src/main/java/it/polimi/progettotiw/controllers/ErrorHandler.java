@@ -52,9 +52,6 @@ public class ErrorHandler extends HttpServlet {
         String exceptionType = "N/A";
         String stackTrace = "Not available.";
 
-        // --- Logica per determinare la fonte dell'errore ---
-
-        // 1. Controlla se è un errore gestito dal container (ha gli attributi standard)
         Object statusCodeObj = request.getAttribute("jakarta.servlet.error.status_code");
         if (statusCodeObj != null) {
             statusCode = (Integer) statusCodeObj;
